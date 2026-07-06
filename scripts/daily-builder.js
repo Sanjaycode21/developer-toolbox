@@ -6,49 +6,87 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Initialize paths
 const repoDir = path.resolve(process.cwd());
 const roadmapPath = path.join(repoDir, 'roadmap.md');
-const indexPath = path.join(repoDir, 'index.html');
+const envPath = path.join(repoDir, '.env');
+const targetBranch = 'new-features';
+
+// Load environment variables from local .env file if it exists
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split(/\r?\n/).forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      if (key && valueParts.length > 0) {
+        process.env[key.trim()] = valueParts.join('=').trim().replace(/(^['"]|['"]$)/g, '');
+      }
+    }
+  });
+}
 
 console.log('--- Starting Daily Builder Bot ---');
 console.log(`Working Directory: ${repoDir}`);
 
-// 1. Parse roadmap.md to find the next task
+// 1. Check out separate branch (new-features)
+try {
+  console.log(`Checking out branch: ${targetBranch}`);
+  execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
+} catch (e) {
+  console.log(`Creating branch: ${targetBranch}`);
+  execSync(`git checkout -b ${targetBranch}`, { stdio: 'inherit' });
+}
+
+// 2. Parse roadmap.md to find the next task
 if (!fs.existsSync(roadmapPath)) {
   console.error(`Error: roadmap.md not found at ${roadmapPath}`);
   process.exit(1);
 }
 
 const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-let nextTask = null;
-let taskLine = '';
-
-// Find the first uncompleted task (e.g. - [ ] Day X: Task description)
 const lines = roadmapContent.split(/\r?\n/);
+let nextTask = null;
 let nextTaskIndex = -1;
+
 for (let i = 0; i < lines.length; i++) {
   const line = lines[i];
   if (line.trim().startsWith('- [ ]')) {
     nextTask = line.replace('- [ ]', '').trim();
-    taskLine = line;
     nextTaskIndex = i;
     break;
   }
 }
 
 if (!nextTask || nextTaskIndex === -1) {
-  console.log('No uncompleted tasks found in roadmap.md! The app is fully built.');
+  console.log('No uncompleted tasks found in roadmap.md! DevForge is fully built.');
   process.exit(0);
 }
 
-console.log(`Found Next Task: "${nextTask}"`);
+console.log(`Found Next Task to implement: "${nextTask}"`);
 
-// 2. Read current app structure (index.html)
-if (!fs.existsSync(indexPath)) {
-  console.error(`Error: index.html not found at ${indexPath}`);
-  process.exit(1);
+// 3. Collect Workspace Directory Map
+function getFilesTree(dir, fileList = []) {
+  const files = fs.readdirSync(dir);
+  files.forEach(file => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      if (file !== 'node_modules' && file !== '.git' && file !== '.next') {
+        getFilesTree(filePath, fileList);
+      }
+    } else {
+      fileList.push(path.relative(repoDir, filePath));
+    }
+  });
+  return fileList;
 }
-const currentIndexContent = fs.readFileSync(indexPath, 'utf8');
 
-// 3. Initialize Gemini API Client or Set Up Mock Mode
+const filesTree = getFilesTree(repoDir);
+const layoutPath = path.join(repoDir, 'src/app/layout.tsx');
+let layoutContent = '';
+if (fs.existsSync(layoutPath)) {
+  layoutContent = fs.readFileSync(layoutPath, 'utf8');
+}
+
+// 4. Initialize Gemini client
 const isMock = process.argv.includes('--mock');
 let genAI = null;
 
@@ -56,7 +94,7 @@ if (!isMock) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error('Error: GEMINI_API_KEY environment variable is not defined.');
-    console.error('Please configure GEMINI_API_KEY in your local environment or GitHub Secrets, or run with --mock for dry-run.');
+    console.error('Please configure GEMINI_API_KEY in your local .env or system variables.');
     process.exit(1);
   }
   genAI = new GoogleGenerativeAI(apiKey);
@@ -64,61 +102,90 @@ if (!isMock) {
   console.log('Running in MOCK mode (no API key required)');
 }
 
-// 4. Construct Prompt
-const systemPrompt = `You are a premium Frontend Web Developer Bot. Your task is to update a single-page HTML application ('index.html') to implement the next planned feature/improvement from the roadmap.
+// 5. Construct Prompt
+const systemPrompt = `You are a lead software engineer building DevForge, a premium Developer Toolbox using Next.js (App Router), TypeScript, and Tailwind CSS.
+Your goal is to implement the next planned tool or feature autonomously.
 
 CRITICAL RULES:
-1. Maintain existing features, structure, and design system. Do not lose functionality.
-2. Elevate the visual aesthetics. Use modern styling: glassmorphism, nice transitions, subtle hover animations, rich/vibrant gradient colors, and modern sans-serif typography.
-3. The page must feel active, interactive, and alive. Do not use static placeholder text; generate engaging content or functional UI components.
-4. Output the complete, updated HTML file enclosed within a single markdown code block, i.e., \`\`\`html\\n[UPDATED_CODE]\\n\`\`\`. Do not output anything else.`;
+1. Write production-ready, highly aesthetic code (dark theme, clean layout, responsive, nice animations).
+2. The user requested to add or modify files. You must return your edits in a JSON format.
+3. You can create new pages/tools under 'src/app/tools/<tool-name>/page.tsx'.
+4. If you add a new tool page, you MUST update 'src/app/layout.tsx' to include a link to the tool in the sidebar navigation so the user can access it!
+5. Output ONLY a valid JSON array of file edits wrapped inside a single markdown code block: \`\`\`json [JSON_CONTENT] \`\`\`. Do not include any other conversational text.
+
+The JSON format must be:
+[
+  {
+    "action": "create" | "modify",
+    "path": "relative/path/to/file",
+    "content": "The full code content of the file"
+  }
+]`;
 
 const userPrompt = `
-Here is the current content of 'index.html':
-\`\`\`html
-${currentIndexContent}
+Workspace Files List:
+${filesTree.map(f => `- ${f}`).join('\n')}
+
+Current src/app/layout.tsx structure:
+\`\`\`tsx
+${layoutContent}
 \`\`\`
 
 Here is the task you must implement:
 "${nextTask}"
 
-Please implement this task in the code. Update the UI, CSS styles, and JavaScript logic as necessary. Ensure it is fully interactive.
-Return ONLY the updated 'index.html' content inside a \`\`\`html code block.
+Implement this task. Generate the required file additions/modifications and return them in the JSON format wrapped in \`\`\`json.
 `;
 
-console.log('Generating changes...');
+console.log('Generating code updates...');
 
 async function run() {
   try {
     let responseText = '';
     
     if (isMock) {
-      // Mock generation logic: simply insert a placeholder container for the next task
-      const placeholderRegex = /<!-- Future widgets and boards will be added here step-by-step -->/i;
-      const mockWidget = `
-    <!-- Widget for: ${nextTask} -->
-    <div class="card" style="
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      margin-top: 1.5rem;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-      transition: transform 0.3s ease;
-    " onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-      <h3 style="color: var(--accent-color); margin-top: 0;">${nextTask}</h3>
-      <p style="color: #94a3b8; font-size: 0.95rem;">This feature was successfully built and integrated by the daily-builder bot step-by-step.</p>
+      // Mock changes: create a mock task page and modify layout
+      const taskSlug = nextTask.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const mockFilePath = `src/app/tools/${taskSlug}/page.tsx`;
+      const mockFileContent = `"use client";
+export default function MockPage() {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-slate-100">${nextTask}</h2>
+      <p className="text-xs text-slate-400">Mock version for testing daily-builder bot execution.</p>
     </div>
-    
-    <!-- Future widgets and boards will be added here step-by-step -->
-      `;
-      if (placeholderRegex.test(currentIndexContent)) {
-        responseText = `\`\`\`html\n${currentIndexContent.replace(placeholderRegex, mockWidget.trim())}\n\`\`\``;
-      } else {
-        responseText = `\`\`\`html\n${currentIndexContent}\n\`\`\``;
+  );
+}`;
+      // Append a link to layout
+      let updatedLayout = layoutContent;
+      const navMark = 'Design & Graphics</span>';
+      if (layoutContent.includes(navMark)) {
+        const linkBlock = `
+            <div>
+              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
+              <div className="mt-2 space-y-1">
+                <Link href="/tools/${taskSlug}" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>${nextTask.split(':')[0]}</span>
+                </Link>
+              </div>
+            </div>`;
+        updatedLayout = layoutContent.replace(navMark, `${navMark}\n${linkBlock}`);
       }
+
+      responseText = `\`\`\`json
+[
+  {
+    "action": "create",
+    "path": "${mockFilePath}",
+    "content": ${JSON.stringify(mockFileContent)}
+  },
+  {
+    "action": "modify",
+    "path": "src/app/layout.tsx",
+    "content": ${JSON.stringify(updatedLayout)}
+  }
+]
+\`\`\``;
     } else {
       console.log('Calling Gemini API...');
       const model = genAI.getGenerativeModel({
@@ -129,63 +196,88 @@ async function run() {
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0.1,
+          responseMimeType: 'text/plain',
         }
       });
       responseText = result.response.text();
     }
-    
-    // Extract code block content
-    const codeBlockMatch = responseText.match(/```html\s*([\s\S]*?)\s*```/i);
-    let updatedCode = '';
-    
-    if (codeBlockMatch && codeBlockMatch[1]) {
-      updatedCode = codeBlockMatch[1].trim();
-    } else {
-      // Fallback in case the markdown wrapper was omitted
-      updatedCode = responseText.trim();
-    }
 
-    if (!updatedCode.startsWith('<!DOCTYPE html>') && !updatedCode.includes('<html')) {
-      console.error('Error: Generated response does not look like valid HTML. Response summary:');
-      console.log(responseText.substring(0, 300));
+    // 6. Parse JSON edits
+    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/i);
+    if (!jsonMatch || !jsonMatch[1]) {
+      console.error('Error: Could not extract valid JSON array block from response.');
+      console.log(responseText);
       process.exit(1);
     }
 
-    // 5. Save updated code
-    fs.writeFileSync(indexPath, updatedCode, 'utf8');
-    console.log('Successfully updated index.html.');
+    let fileEdits = [];
+    try {
+      fileEdits = JSON.parse(jsonMatch[1].trim());
+    } catch (e) {
+      console.error('Error parsing JSON content:', e.message);
+      process.exit(1);
+    }
 
-    // 6. Update roadmap.md (mark task as completed)
+    console.log(`Applying ${fileEdits.length} file changes...`);
+    const modifiedPaths = [];
+    
+    // Apply changes
+    for (const edit of fileEdits) {
+      const targetPath = path.resolve(repoDir, edit.path);
+      modifiedPaths.push(targetPath);
+      
+      if (edit.action === 'create' || edit.action === 'modify') {
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.writeFileSync(targetPath, edit.content, 'utf8');
+        console.log(`Updated file: ${edit.path}`);
+      } else if (edit.action === 'delete') {
+        if (fs.existsSync(targetPath)) {
+          fs.unlinkSync(targetPath);
+          console.log(`Deleted file: ${edit.path}`);
+        }
+      }
+    }
+
+    // 7. Update roadmap.md locally
     lines[nextTaskIndex] = lines[nextTaskIndex].replace('- [ ]', '- [x]');
     const updatedRoadmapContent = lines.join('\n');
-    fs.readFileSync(roadmapPath, 'utf8'); // check read again
     fs.writeFileSync(roadmapPath, updatedRoadmapContent, 'utf8');
-    console.log('Successfully updated roadmap.md.');
+    console.log('Updated roadmap.md checklist.');
 
-    // 7. Git commit locally
+    // 8. Build Validation check
     try {
-      console.log('Executing git commit...');
-      execSync('git add index.html roadmap.md', { stdio: 'inherit' });
+      console.log('Running build validation: npm run build...');
+      execSync('npm run build', { stdio: 'inherit' });
+      console.log('Build validation succeeded!');
+    } catch (buildError) {
+      console.error('Build compilation failed! Rolling back changes...');
+      // Revert files via Git
+      execSync('git checkout -- .', { stdio: 'inherit' });
+      // If there are newly created files not tracked by Git, clean them up
+      execSync('git clean -fd', { stdio: 'inherit' });
+      console.error('Rollback completed. Exiting.');
+      process.exit(1);
+    }
+
+    // 9. Git commit & push
+    try {
+      console.log('Staging files for commit...');
+      execSync('git add .', { stdio: 'inherit' });
       execSync(`git commit -m "bot(daily): implement ${nextTask}"`, { stdio: 'inherit' });
-      console.log('Git commit succeeded!');
+      console.log('Changes committed successfully.');
       
-      // Attempt git push if remote is configured
-      try {
-        console.log('Attempting git push...');
-        execSync('git push', { stdio: 'inherit' });
-        console.log('Git push succeeded!');
-      } catch (pushErr) {
-        console.log('Note: Git push skipped or failed (likely remote is not set up yet or auth is missing). This is OK for local test runs.');
-      }
-    } catch (gitErr) {
-      console.error('Git operation failed:', gitErr.message);
+      console.log('Pushing to GitHub...');
+      execSync(`git push origin ${targetBranch}`, { stdio: 'inherit' });
+      console.log('Git push completed!');
+    } catch (gitError) {
+      console.warn('Git push skipped or failed (Likely remote is not configured or authenticating). Local commit is preserved.');
     }
 
     console.log('--- Daily Builder Bot Finished Successfully ---');
 
   } catch (error) {
-    console.error('Failed to run Daily Builder Bot:', error);
+    console.error('Execution failed:', error);
     process.exit(1);
   }
 }

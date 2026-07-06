@@ -1,15 +1,15 @@
-# Productive Inspiration Board Roadmap
+# Developer Toolbox Roadmap
 
-This roadmap lists the step-by-step improvements that the daily-builder bot will implement.
+This roadmap lists the daily, step-by-step feature implementations and UX improvements for Developer Toolbox.
 
 ## Tasks
-- [x] Day 1: Initialize basic single-page HTML structure with a clean header and a greeting
-- [ ] Day 2: Create a daily quote display section with a premium, glassmorphism card design
-- [ ] Day 3: Add a list of inspirational task boards (todos) with clean hover effects
-- [ ] Day 4: Add add/remove task functionality using simple form inputs and lists
-- [ ] Day 5: Integrate localStorage to persist the tasks and user's preferred layout
-- [ ] Day 6: Implement premium styling using a custom dark mode/light mode theme toggler with micro-animations
-- [ ] Day 7: Add task filtering by categories (e.g., Personal, Work, Creative) with dynamic active tags
-- [ ] Day 8: Implement search functionality to quickly find specific tasks in the list
-- [ ] Day 9: Add a visual progress ring showing the percentage of tasks completed
-- [ ] Day 10: Integrate a quick notes/scratchpad area with automatic saving and custom font sizing
+- [x] Day 1: Setup Home dashboard and sidebar layout with JSON Formatter and Color Picker
+- [ ] Day 2: Implement Base64 Encoder/Decoder tool
+- [ ] Day 3: Implement JWT Decoder tool
+- [ ] Day 4: Implement CSS Shadow & Gradient Generator tools
+- [ ] Day 5: Implement Unix Timestamp & Epoch Converter tools
+- [ ] Day 6: Implement UUID & Password Generator tools
+- [ ] Day 7: Implement Case Converter & Lorem Ipsum Generator tools
+- [ ] Day 8: Implement Regex Tester & Generator tools
+- [ ] Day 9: Implement Markdown Live Preview & HTML Formatter tools
+- [ ] Day 10: Integrate Zustand state store for local User Favorites list and usage history dashboard
