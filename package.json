@@ -1,0 +1,15 @@
+{
+  "name": "daily-auto-app",
+  "version": "1.0.0",
+  "description": "An application that automatically improves step-by-step each day using Gemini.",
+  "type": "module",
+  "main": "scripts/daily-builder.js",
+  "scripts": {
+    "start": "node scripts/daily-builder.js",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  },
+  "private": true
+}
