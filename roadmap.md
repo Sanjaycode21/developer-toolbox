@@ -4,7 +4,7 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 
 ## Tasks
 - [x] Day 1: Setup Home dashboard and sidebar layout with JSON Formatter and Color Picker
-- [ ] Day 2: Implement Base64 Encoder/Decoder tool
+- [x] Day 2: Implement Base64 Encoder/Decoder tool
 - [ ] Day 3: Implement JWT Decoder tool
 - [ ] Day 4: Implement CSS Shadow & Gradient Generator tools
 - [ ] Day 5: Implement Unix Timestamp & Epoch Converter tools
