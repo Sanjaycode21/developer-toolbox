@@ -54,6 +54,9 @@ export default function RootLayout({
                 <Link href="/tools/json-formatter" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
                   <span>JSON Formatter</span>
                 </Link>
+                <Link href="/tools/base64-encoder-decoder" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>Base64 Encoder/Decoder</span>
+                </Link>
               </div>
             </div>
 
