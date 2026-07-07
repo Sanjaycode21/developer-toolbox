@@ -23,8 +23,16 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-console.log('--- Starting Daily Builder Bot ---');
+console.log('--- Starting Daily Builder Bot (5 Contributions Mode) ---');
 console.log(`Working Directory: ${repoDir}`);
+
+// Configure git user name and email globally/locally to attribute commits
+try {
+  execSync('git config user.name "Sanjaycode21"', { stdio: 'inherit' });
+  execSync('git config user.email "sanjaycode21@gmail.com"', { stdio: 'inherit' });
+} catch (e) {
+  console.warn('Could not configure git user name/email locally:', e.message);
+}
 
 // 1. Check out separate branch (new-features)
 try {
@@ -35,34 +43,7 @@ try {
   execSync(`git checkout -b ${targetBranch}`, { stdio: 'inherit' });
 }
 
-// 2. Parse roadmap.md to find the next task
-if (!fs.existsSync(roadmapPath)) {
-  console.error(`Error: roadmap.md not found at ${roadmapPath}`);
-  process.exit(1);
-}
-
-const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-const lines = roadmapContent.split(/\r?\n/);
-let nextTask = null;
-let nextTaskIndex = -1;
-
-for (let i = 0; i < lines.length; i++) {
-  const line = lines[i];
-  if (line.trim().startsWith('- [ ]')) {
-    nextTask = line.replace('- [ ]', '').trim();
-    nextTaskIndex = i;
-    break;
-  }
-}
-
-if (!nextTask || nextTaskIndex === -1) {
-  console.log('No uncompleted tasks found in roadmap.md! DevForge is fully built.');
-  process.exit(0);
-}
-
-console.log(`Found Next Task to implement: "${nextTask}"`);
-
-// 3. Collect Workspace Directory Map
+// Helper to collect Workspace Directory Map
 function getFilesTree(dir, fileList = []) {
   const files = fs.readdirSync(dir);
   files.forEach(file => {
@@ -79,14 +60,64 @@ function getFilesTree(dir, fileList = []) {
   return fileList;
 }
 
-const filesTree = getFilesTree(repoDir);
-const layoutPath = path.join(repoDir, 'src/app/layout.tsx');
-let layoutContent = '';
-if (fs.existsSync(layoutPath)) {
-  layoutContent = fs.readFileSync(layoutPath, 'utf8');
+// Helper to dynamically brainstorm and append new tasks if roadmap runs out
+function generateDynamicTask() {
+  const files = getFilesTree(repoDir);
+  const ideas = [
+    "JWT Decoder tool",
+    "Unix Timestamp and Epoch Converter tools",
+    "UUID and Password Generator tools",
+    "Case Converter and Lorem Ipsum Generator tools",
+    "XML Formatter tool",
+    "YAML Formatter tool",
+    "CSV Viewer & Converter",
+    "Regex Tester & Generator",
+    "Markdown Live Preview",
+    "HTML Formatter",
+    "SQL Formatter",
+    "Base64 Image Encoder/Decoder",
+    "Hash Generator (MD5, SHA1, SHA256)",
+    "Hash Verifier",
+    "robots.txt Generator",
+    "sitemap.xml Generator",
+    "SVG Optimizer & Viewer",
+    "Meta Tag Generator & OG Preview",
+    "Cron Expression Builder",
+    "URL Encode/Decode tool",
+    "WebSocket Tester",
+    "HTTP Header Viewer",
+    "SQL Playground UI",
+    "QR Code Generator",
+    "Barcode Generator",
+    "Fake Data Generator",
+    "Slug Generator",
+    "Binary & Hex Calculator",
+    "Unit Converter (Byte, Temperature, Length)",
+    "Zustand State Favorites and History Dashboard"
+  ];
+  
+  // Find one that is not implemented yet
+  let targetIdea = ideas.find(idea => {
+    const slug = idea.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return !files.some(f => f.includes(slug));
+  });
+  
+  if (!targetIdea) {
+    targetIdea = `Add developer utility number ${files.length}`;
+  }
+  
+  const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+  const lines = roadmapContent.split('\n');
+  const newDayNumber = lines.filter(l => l.includes('- [')).length + 1;
+  const newTaskLine = `- [ ] Day ${newDayNumber}: Implement ${targetIdea}`;
+  
+  // Find "## Tasks" section and append
+  let updatedRoadmap = roadmapContent.trim() + `\n${newTaskLine}\n`;
+  fs.writeFileSync(roadmapPath, updatedRoadmap, 'utf8');
+  console.log(`Generated and appended new dynamic task: "${newTaskLine}"`);
 }
 
-// 4. Initialize Gemini client
+// 2. Initialize Gemini client
 const isMock = process.argv.includes('--mock');
 let genAI = null;
 
@@ -94,16 +125,67 @@ if (!isMock) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error('Error: GEMINI_API_KEY environment variable is not defined.');
-    console.error('Please configure GEMINI_API_KEY in your local .env or system variables.');
     process.exit(1);
   }
   genAI = new GoogleGenerativeAI(apiKey);
-} else {
-  console.log('Running in MOCK mode (no API key required)');
 }
 
-// 5. Construct Prompt
-const systemPrompt = `You are a lead software engineer building DevForge, a premium Developer Toolbox using Next.js (App Router), TypeScript, and Tailwind CSS.
+// Run loop for 5 contributions
+const numberOfContributions = 5;
+let successfulContributions = 0;
+
+async function executeSingleTask() {
+  // Read and parse roadmap.md dynamically inside the loop
+  if (!fs.existsSync(roadmapPath)) {
+    console.error(`Error: roadmap.md not found at ${roadmapPath}`);
+    return false;
+  }
+  
+  let roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+  let lines = roadmapContent.split(/\r?\n/);
+  let nextTask = null;
+  let nextTaskIndex = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim().startsWith('- [ ]')) {
+      nextTask = line.replace('- [ ]', '').trim();
+      nextTaskIndex = i;
+      break;
+    }
+  }
+  
+  // If roadmap is empty, auto-generate a new task and re-parse
+  if (!nextTask || nextTaskIndex === -1) {
+    console.log('Roadmap is out of tasks! Generating a new dynamic tool task...');
+    generateDynamicTask();
+    roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+    lines = roadmapContent.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim().startsWith('- [ ]')) {
+        nextTask = line.replace('- [ ]', '').trim();
+        nextTaskIndex = i;
+        break;
+      }
+    }
+  }
+  
+  if (!nextTask || nextTaskIndex === -1) {
+    console.error('Failed to parse next task even after dynamic generation.');
+    return false;
+  }
+  
+  console.log(`\n--- Implementing Task: "${nextTask}" ---`);
+  
+  const filesTree = getFilesTree(repoDir);
+  const layoutPath = path.join(repoDir, 'src/app/layout.tsx');
+  let layoutContent = '';
+  if (fs.existsSync(layoutPath)) {
+    layoutContent = fs.readFileSync(layoutPath, 'utf8');
+  }
+  
+  const systemPrompt = `You are a lead software engineer building DevForge, a premium Developer Toolbox using Next.js (App Router), TypeScript, and Tailwind CSS.
 Your goal is to implement the next planned tool or feature autonomously.
 
 CRITICAL RULES:
@@ -122,7 +204,7 @@ The JSON format must be:
   }
 ]`;
 
-const userPrompt = `
+  const userPrompt = `
 Workspace Files List:
 ${filesTree.map(f => `- ${f}`).join('\n')}
 
@@ -137,17 +219,12 @@ Here is the task you must implement:
 Implement this task. Generate the required file additions/modifications and return them in the JSON format wrapped in \`\`\`json.
 `;
 
-console.log('Generating code updates...');
-
-async function run() {
-  try {
-    let responseText = '';
-    
-    if (isMock) {
-      // Mock changes: create a mock task page and modify layout
-      const taskSlug = nextTask.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const mockFilePath = `src/app/tools/${taskSlug}/page.tsx`;
-      const mockFileContent = `"use client";
+  let responseText = '';
+  
+  if (isMock) {
+    const taskSlug = nextTask.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const mockFilePath = `src/app/tools/${taskSlug}/page.tsx`;
+    const mockFileContent = `"use client";
 export default function MockPage() {
   return (
     <div className="space-y-6">
@@ -156,11 +233,10 @@ export default function MockPage() {
     </div>
   );
 }`;
-      // Append a link to layout
-      let updatedLayout = layoutContent;
-      const navMark = 'Design & Graphics</span>';
-      if (layoutContent.includes(navMark)) {
-        const linkBlock = `
+    let updatedLayout = layoutContent;
+    const navMark = 'Design & Graphics</span>';
+    if (layoutContent.includes(navMark)) {
+      const linkBlock = `
             <div>
               <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
               <div className="mt-2 space-y-1">
@@ -169,10 +245,10 @@ export default function MockPage() {
                 </Link>
               </div>
             </div>`;
-        updatedLayout = layoutContent.replace(navMark, `${navMark}\n${linkBlock}`);
-      }
+      updatedLayout = layoutContent.replace(navMark, `${navMark}\n${linkBlock}`);
+    }
 
-      responseText = `\`\`\`json
+    responseText = `\`\`\`json
 [
   {
     "action": "create",
@@ -186,7 +262,8 @@ export default function MockPage() {
   }
 ]
 \`\`\``;
-    } else {
+  } else {
+    try {
       console.log('Calling Gemini API...');
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
@@ -201,76 +278,87 @@ export default function MockPage() {
         }
       });
       responseText = result.response.text();
-    }
-
-    // 6. Parse JSON edits
-    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/i);
-    if (!jsonMatch || !jsonMatch[1]) {
-      console.error('Error: Could not extract valid JSON array block from response.');
-      console.log(responseText);
-      process.exit(1);
-    }
-
-    let fileEdits = [];
-    try {
-      fileEdits = JSON.parse(jsonMatch[1].trim());
     } catch (e) {
-      console.error('Error parsing JSON content:', e.message);
-      process.exit(1);
+      console.error('Gemini API call failed:', e.message);
+      return false;
     }
+  }
 
-    console.log(`Applying ${fileEdits.length} file changes...`);
-    const modifiedPaths = [];
-    
-    // Apply changes
-    for (const edit of fileEdits) {
-      const targetPath = path.resolve(repoDir, edit.path);
-      modifiedPaths.push(targetPath);
-      
-      if (edit.action === 'create' || edit.action === 'modify') {
-        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-        fs.writeFileSync(targetPath, edit.content, 'utf8');
-        console.log(`Updated file: ${edit.path}`);
-      } else if (edit.action === 'delete') {
-        if (fs.existsSync(targetPath)) {
-          fs.unlinkSync(targetPath);
-          console.log(`Deleted file: ${edit.path}`);
-        }
+  // Parse JSON
+  const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (!jsonMatch || !jsonMatch[1]) {
+    console.error('Error: Could not extract valid JSON array block.');
+    return false;
+  }
+
+  let fileEdits = [];
+  try {
+    fileEdits = JSON.parse(jsonMatch[1].trim());
+  } catch (e) {
+    console.error('Error parsing JSON content:', e.message);
+    return false;
+  }
+
+  console.log(`Applying ${fileEdits.length} file changes...`);
+  for (const edit of fileEdits) {
+    const targetPath = path.resolve(repoDir, edit.path);
+    if (edit.action === 'create' || edit.action === 'modify') {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, edit.content, 'utf8');
+      console.log(`Updated file: ${edit.path}`);
+    } else if (edit.action === 'delete') {
+      if (fs.existsSync(targetPath)) {
+        fs.unlinkSync(targetPath);
+        console.log(`Deleted file: ${edit.path}`);
       }
     }
+  }
 
-    // 7. Update roadmap.md locally
-    lines[nextTaskIndex] = lines[nextTaskIndex].replace('- [ ]', '- [x]');
-    const updatedRoadmapContent = lines.join('\n');
-    fs.writeFileSync(roadmapPath, updatedRoadmapContent, 'utf8');
-    console.log('Updated roadmap.md checklist.');
+  // Update roadmap
+  lines[nextTaskIndex] = lines[nextTaskIndex].replace('- [ ]', '- [x]');
+  fs.writeFileSync(roadmapPath, lines.join('\n'), 'utf8');
+  console.log('Updated roadmap.md checklist.');
 
-    // 8. Build Validation check
-    try {
-      console.log('Running build validation: npm run build...');
-      execSync('npm run build', { stdio: 'inherit' });
-      console.log('Build validation succeeded!');
-    } catch (buildError) {
-      console.error('Build compilation failed! Rolling back changes...');
-      // Revert files via Git
-      execSync('git checkout -- .', { stdio: 'inherit' });
-      // If there are newly created files not tracked by Git, clean them up
-      execSync('git clean -fd', { stdio: 'inherit' });
-      console.error('Rollback completed. Exiting.');
-      process.exit(1);
+  // Validate build
+  try {
+    console.log('Running build validation: npm run build...');
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('Build validation succeeded!');
+  } catch (buildError) {
+    console.error('Build compilation failed! Rolling back changes...');
+    execSync('git checkout -- .', { stdio: 'inherit' });
+    execSync('git clean -fd', { stdio: 'inherit' });
+    return false;
+  }
+
+  // Commit locally
+  try {
+    execSync('git add .', { stdio: 'inherit' });
+    execSync(`git commit -m "bot(daily): implement ${nextTask}"`, { stdio: 'inherit' });
+    console.log('Committed change successfully.');
+    return true;
+  } catch (gitErr) {
+    console.error('Failed to commit change:', gitErr.message);
+    return false;
+  }
+}
+
+async function run() {
+  for (let i = 0; i < numberOfContributions; i++) {
+    console.log(`\n================ CONTRIBUTION ${i + 1} OF ${numberOfContributions} ================`);
+    const success = await executeSingleTask();
+    if (success) {
+      successfulContributions++;
+    } else {
+      console.warn(`Contribution ${i + 1} failed. Moving to next or ending loop.`);
     }
-
-    // 9. Git commit & push
+  }
+  
+  console.log(`\nCompleted loop. Successful contributions: ${successfulContributions} of ${numberOfContributions}`);
+  
+  // Push results to GitHub
+  if (successfulContributions > 0) {
     try {
-      console.log('Staging files for commit...');
-      // Set the correct author to ensure contribution graph updates
-      execSync('git config user.name "Sanjaycode21"', { stdio: 'inherit' });
-      execSync('git config user.email "sanjaycode21@gmail.com"', { stdio: 'inherit' });
-
-      execSync('git add .', { stdio: 'inherit' });
-      execSync(`git commit -m "bot(daily): implement ${nextTask}"`, { stdio: 'inherit' });
-      console.log('Changes committed successfully.');
-      
       console.log('Pushing new-features branch to GitHub...');
       execSync(`git push origin ${targetBranch}`, { stdio: 'inherit' });
       
@@ -281,21 +369,18 @@ export default function MockPage() {
       console.log('Pushing main branch to GitHub (to update contribution graph)...');
       execSync('git push origin main', { stdio: 'inherit' });
       
-      // Switch back to targetBranch for future builder runs
+      // Switch back to targetBranch
       execSync(`git checkout ${targetBranch}`, { stdio: 'inherit' });
-      console.log('Git operations completed successfully!');
-    } catch (gitError) {
-      console.warn('Git operation failed (make sure PAT token and remote origin are configured correctly):', gitError.message);
-      // Ensure we end up on targetBranch even if merge/push fails
+      console.log('All branches successfully pushed to GitHub!');
+    } catch (pushErr) {
+      console.error('Git push failed:', pushErr.message);
       try { execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' }); } catch(e) {}
     }
-
-    console.log('--- Daily Builder Bot Finished Successfully ---');
-
-  } catch (error) {
-    console.error('Execution failed:', error);
-    process.exit(1);
+  } else {
+    console.log('No successful contributions to push.');
   }
+  
+  console.log('\n--- Daily Builder Bot Finished Successfully ---');
 }
 
 run();
