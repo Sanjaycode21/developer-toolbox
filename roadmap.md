@@ -9,7 +9,7 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 4: Implement CSS Shadow & Gradient Generator tools
 - [x] Day 5: Implement Unix Timestamp & Epoch Converter tools
 - [x] Day 6: Implement UUID & Password Generator tools
-- [ ] Day 7: Implement Case Converter & Lorem Ipsum Generator tools
+- [x] Day 7: Implement Case Converter & Lorem Ipsum Generator tools
 - [ ] Day 8: Implement Regex Tester & Generator tools
 - [ ] Day 9: Implement Markdown Live Preview & HTML Formatter tools
 - [ ] Day 10: Integrate Zustand state store for local User Favorites list and usage history dashboard
