@@ -66,6 +66,15 @@ export default function RootLayout({
             <div>
               <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
               <div className="mt-2 space-y-1">
+                <Link href="/tools/day-6-implement-uuid-password-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>Day 6</span>
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
+              <div className="mt-2 space-y-1">
                 <Link href="/tools/day-5-implement-unix-timestamp-epoch-converter-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
                   <span>Day 5</span>
                 </Link>
