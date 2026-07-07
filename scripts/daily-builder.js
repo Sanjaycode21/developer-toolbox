@@ -263,15 +263,31 @@ export default function MockPage() {
     // 9. Git commit & push
     try {
       console.log('Staging files for commit...');
+      // Set the correct author to ensure contribution graph updates
+      execSync('git config user.name "Sanjaycode21"', { stdio: 'inherit' });
+      execSync('git config user.email "sanjaycode21@gmail.com"', { stdio: 'inherit' });
+
       execSync('git add .', { stdio: 'inherit' });
       execSync(`git commit -m "bot(daily): implement ${nextTask}"`, { stdio: 'inherit' });
       console.log('Changes committed successfully.');
       
-      console.log('Pushing to GitHub...');
+      console.log('Pushing new-features branch to GitHub...');
       execSync(`git push origin ${targetBranch}`, { stdio: 'inherit' });
-      console.log('Git push completed!');
+      
+      console.log('Merging changes to main branch...');
+      execSync('git checkout main', { stdio: 'inherit' });
+      execSync(`git merge ${targetBranch} --no-edit`, { stdio: 'inherit' });
+      
+      console.log('Pushing main branch to GitHub (to update contribution graph)...');
+      execSync('git push origin main', { stdio: 'inherit' });
+      
+      // Switch back to targetBranch for future builder runs
+      execSync(`git checkout ${targetBranch}`, { stdio: 'inherit' });
+      console.log('Git operations completed successfully!');
     } catch (gitError) {
-      console.warn('Git push skipped or failed (Likely remote is not configured or authenticating). Local commit is preserved.');
+      console.warn('Git operation failed (make sure PAT token and remote origin are configured correctly):', gitError.message);
+      // Ensure we end up on targetBranch even if merge/push fails
+      try { execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' }); } catch(e) {}
     }
 
     console.log('--- Daily Builder Bot Finished Successfully ---');
