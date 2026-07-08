@@ -57,66 +57,57 @@ export default function RootLayout({
                 <Link href="/tools/base64-encoder-decoder" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
                   <span>Base64 Encoder/Decoder</span>
                 </Link>
+                <Link href="/tools/regex-tester-generator" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>Regex Tester & Generator</span>
+                </Link>
+                <Link href="/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>Case Converter & Lorem Ipsum</span>
+                </Link>
               </div>
             </div>
 
             <div>
               <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Design & Graphics</span>
-
-            <div>
-              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
-              <div className="mt-2 space-y-1">
-                <Link href="/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
-                  <span>Day 7</span>
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
-              <div className="mt-2 space-y-1">
-                <Link href="/tools/day-6-implement-uuid-password-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
-                  <span>Day 6</span>
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
-              <div className="mt-2 space-y-1">
-                <Link href="/tools/day-5-implement-unix-timestamp-epoch-converter-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
-                  <span>Day 5</span>
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
-              <div className="mt-2 space-y-1">
-                <Link href="/tools/day-4-implement-css-shadow-gradient-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
-                  <span>Day 4</span>
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Automated Daily</span>
-              <div className="mt-2 space-y-1">
-                <Link href="/tools/day-3-implement-jwt-decoder-tool" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
-                  <span>Day 3</span>
-                </Link>
-              </div>
-            </div>
               <div className="mt-2 space-y-1">
                 <Link href="/tools/color-picker" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
                   <span>Color Picker</span>
+                </Link>
+                <Link href="/tools/day-4-implement-css-shadow-gradient-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>CSS Shadow & Gradient Generator</span>
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Converters & Encoders</span>
+              <div className="mt-2 space-y-1">
+                <Link href="/tools/day-5-implement-unix-timestamp-epoch-converter-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>Unix Timestamp & Epoch Converter</span>
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Generators</span>
+              <div className="mt-2 space-y-1">
+                <Link href="/tools/day-6-implement-uuid-password-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>UUID & Password Generator</span>
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Security & Cryptography</span>
+              <div className="mt-2 space-y-1">
+                <Link href="/tools/day-3-implement-jwt-decoder-tool" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>JWT Decoder</span>
                 </Link>
               </div>
             </div>
           </nav>
 
           <div className="p-4 border-t border-slate-800 text-center">
-            <span className="text-[10px] text-slate-600">v1.0.0 (Day 1 Base Version)</span>
+            <span className="text-[10px] text-slate-600">v1.0.0 (Day 8)</span>
           </div>
         </aside>
 
