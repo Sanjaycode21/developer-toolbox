@@ -63,6 +63,12 @@ export default function RootLayout({
                 <Link href="/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
                   <span>Case Converter & Lorem Ipsum</span>
                 </Link>
+                <Link href="/tools/markdown-live-preview" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>Markdown Live Preview</span>
+                </Link>
+                <Link href="/tools/html-formatter" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-lg transition-colors">
+                  <span>HTML Formatter</span>
+                </Link>
               </div>
             </div>
 
@@ -107,7 +113,7 @@ export default function RootLayout({
           </nav>
 
           <div className="p-4 border-t border-slate-800 text-center">
-            <span className="text-[10px] text-slate-600">v1.0.0 (Day 8)</span>
+            <span className="text-[10px] text-slate-600">v1.0.0 (Day 9)</span>
           </div>
         </aside>
 
@@ -136,3 +142,4 @@ export default function RootLayout({
     </html>
   );
 }
+========================================
