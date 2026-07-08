@@ -294,8 +294,11 @@ ${updatedLayout}`;
       const header = parts[0].trim();
       const rawContent = parts.slice(1).join('========================================\n');
       
-      // Clean up any code ticks block formatting if LLM generated them
+      // Clean up any trailing equal sign separator lines
       let content = rawContent.trim();
+      content = content.replace(/\r?\n={10,}\s*$/, ''); // strip trailing equals line
+      
+      // Clean up any code ticks block formatting if LLM generated them
       if (content.startsWith('```')) {
         content = content.replace(/^```[a-zA-Z]*\r?\n/, '').replace(/\r?\n```$/, '');
       }
