@@ -117,7 +117,6 @@ function generateDynamicTask() {
   const newDayNumber = lines.filter(l => l.includes('- [')).length + 1;
   const newTaskLine = `- [ ] Day ${newDayNumber}: Implement ${targetIdea}`;
   
-  // Find "## Tasks" section and append
   let updatedRoadmap = roadmapContent.trim() + `\n${newTaskLine}\n`;
   fs.writeFileSync(roadmapPath, updatedRoadmap, 'utf8');
   console.log(`Generated and appended new dynamic task: "${newTaskLine}"`);
@@ -141,7 +140,6 @@ const numberOfContributions = 5;
 let successfulContributions = 0;
 
 async function executeSingleTask() {
-  // Read and parse roadmap.md dynamically inside the loop
   if (!fs.existsSync(roadmapPath)) {
     console.error(`Error: roadmap.md not found at ${roadmapPath}`);
     return false;
@@ -161,7 +159,6 @@ async function executeSingleTask() {
     }
   }
   
-  // If roadmap is empty, auto-generate a new task and re-parse
   if (!nextTask || nextTaskIndex === -1) {
     console.log('Roadmap is out of tasks! Generating a new dynamic tool task...');
     generateDynamicTask();
@@ -196,19 +193,22 @@ Your goal is to implement the next planned tool or feature autonomously.
 
 CRITICAL RULES:
 1. Write production-ready, highly aesthetic code (dark theme, clean layout, responsive, nice animations).
-2. The user requested to add or modify files. You must return your edits in a JSON format.
-3. You can create new pages/tools under 'src/app/tools/<tool-name>/page.tsx'.
+2. The user requested to add or modify files. You must return your edits in a raw text format using the file separator syntax.
+3. You can create new pages/tools under 'src/app/tools/<tool-slug>/page.tsx'.
 4. If you add a new tool page, you MUST update 'src/app/layout.tsx' to include a link to the tool in the sidebar navigation so the user can access it!
-5. Output ONLY a valid JSON array of file edits wrapped inside a single markdown code block: \`\`\`json [JSON_CONTENT] \`\`\`. Do not include any other conversational text.
+5. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
 
-The JSON format must be:
-[
-  {
-    "action": "create" | "modify",
-    "path": "relative/path/to/file",
-    "content": "The full code content of the file"
-  }
-]`;
+File Separator Syntax:
+For each file you create or edit, wrap the filename and path inside equals line blocks, write the complete file content raw, and then end the file block.
+Example:
+========================================
+FILE: src/app/tools/example-tool/page.tsx
+========================================
+[Raw code of the file goes here]
+========================================
+FILE: src/app/layout.tsx
+========================================
+[Raw code of layout goes here]`;
 
   const userPrompt = `
 Workspace Files List:
@@ -222,7 +222,7 @@ ${layoutContent}
 Here is the task you must implement:
 "${nextTask}"
 
-Implement this task. Generate the required file additions/modifications and return them in the JSON format wrapped in \`\`\`json.
+Please implement this task. Output the modified/created files using the File Separator Syntax.
 `;
 
   let responseText = '';
@@ -254,20 +254,14 @@ export default function MockPage() {
       updatedLayout = layoutContent.replace(navMark, `${navMark}\n${linkBlock}`);
     }
 
-    responseText = `\`\`\`json
-[
-  {
-    "action": "create",
-    "path": "${mockFilePath}",
-    "content": ${JSON.stringify(mockFileContent)}
-  },
-  {
-    "action": "modify",
-    "path": "src/app/layout.tsx",
-    "content": ${JSON.stringify(updatedLayout)}
-  }
-]
-\`\`\``;
+    responseText = `========================================
+FILE: ${mockFilePath}
+========================================
+${mockFileContent}
+========================================
+FILE: src/app/layout.tsx
+========================================
+${updatedLayout}`;
   } else {
     try {
       console.log('Calling Gemini API...');
@@ -290,34 +284,42 @@ export default function MockPage() {
     }
   }
 
-  // Parse JSON
-  const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/i);
-  if (!jsonMatch || !jsonMatch[1]) {
-    console.error('Error: Could not extract valid JSON array block.');
-    return false;
+  // Parse custom separator syntax
+  const files = responseText.split(/={10,}\s*FILE:\s*/gi);
+  const fileEdits = [];
+  
+  for (let i = 1; i < files.length; i++) {
+    const parts = files[i].split(/={10,}\r?\n/);
+    if (parts.length >= 2) {
+      const header = parts[0].trim();
+      const rawContent = parts.slice(1).join('========================================\n');
+      
+      // Clean up any code ticks block formatting if LLM generated them
+      let content = rawContent.trim();
+      if (content.startsWith('```')) {
+        content = content.replace(/^```[a-zA-Z]*\r?\n/, '').replace(/\r?\n```$/, '');
+      }
+      
+      fileEdits.push({
+        action: 'create',
+        path: header,
+        content: content
+      });
+    }
   }
 
-  let fileEdits = [];
-  try {
-    fileEdits = JSON.parse(jsonMatch[1].trim());
-  } catch (e) {
-    console.error('Error parsing JSON content:', e.message);
+  if (fileEdits.length === 0) {
+    console.error('Error: Could not parse any file edits from model response.');
+    console.log(responseText.substring(0, 1000));
     return false;
   }
 
   console.log(`Applying ${fileEdits.length} file changes...`);
   for (const edit of fileEdits) {
     const targetPath = path.resolve(repoDir, edit.path);
-    if (edit.action === 'create' || edit.action === 'modify') {
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.writeFileSync(targetPath, edit.content, 'utf8');
-      console.log(`Updated file: ${edit.path}`);
-    } else if (edit.action === 'delete') {
-      if (fs.existsSync(targetPath)) {
-        fs.unlinkSync(targetPath);
-        console.log(`Deleted file: ${edit.path}`);
-      }
-    }
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.writeFileSync(targetPath, edit.content, 'utf8');
+    console.log(`Updated file: ${edit.path}`);
   }
 
   // Update roadmap
