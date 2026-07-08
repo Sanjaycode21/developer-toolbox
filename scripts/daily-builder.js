@@ -34,10 +34,16 @@ try {
   console.warn('Could not configure git user name/email locally:', e.message);
 }
 
-// 1. Check out separate branch (new-features)
+// 1. Check out separate branch (new-features) and pull latest changes
 try {
   console.log(`Checking out branch: ${targetBranch}`);
   execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
+  console.log('Pulling latest changes from remote...');
+  try {
+    execSync(`git pull origin ${targetBranch} --rebase`, { stdio: 'inherit' });
+  } catch (pullError) {
+    console.log('Note: git pull failed, likely remote branch does not exist yet. Continuing.');
+  }
 } catch (e) {
   console.log(`Creating branch: ${targetBranch}`);
   execSync(`git checkout -b ${targetBranch}`, { stdio: 'inherit' });
