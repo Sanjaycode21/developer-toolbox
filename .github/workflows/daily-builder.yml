@@ -3,7 +3,7 @@ name: Daily App Builder Bot
 on:
   schedule:
     # Run every day at 12:00 UTC (noon)
-    - cron: '0 12 * * *'
+    - cron: '30 6 * * *'
   # Allow manual trigger from the GitHub repository actions tab
   workflow_dispatch:
 
