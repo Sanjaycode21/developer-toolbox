@@ -1,9 +1,16 @@
-"use client";
-export default function MockPage() {
+import ToolPageWrapper from "@/components/ToolPageWrapper";
+
+export default function UuidPasswordGeneratorPage() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-100">Day 6: Implement UUID & Password Generator tools</h2>
-      <p className="text-xs text-slate-400">Mock version for testing daily-builder bot execution.</p>
-    </div>
+    <ToolPageWrapper
+      toolSlug="uuid-password-generator"
+      toolName="UUID & Password Generator"
+      description="Generate strong UUIDs and secure passwords."
+    >
+      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+        <p className="text-lg">UUID & Password Generator tool coming soon!</p>
+        <p className="text-sm mt-2">Create unique identifiers and strong credentials.</p>
+      </div>
+    </ToolPageWrapper>
   );
 }
