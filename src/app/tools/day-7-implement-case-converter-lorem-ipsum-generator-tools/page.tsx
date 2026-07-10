@@ -1,9 +1,16 @@
-"use client";
-export default function MockPage() {
+import ToolPageWrapper from "@/components/ToolPageWrapper";
+
+export default function CaseConverterLoremIpsumGeneratorPage() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-100">Day 7: Implement Case Converter & Lorem Ipsum Generator tools</h2>
-      <p className="text-xs text-slate-400">Mock version for testing daily-builder bot execution.</p>
-    </div>
+    <ToolPageWrapper
+      toolSlug="case-converter-lorem-ipsum-generator"
+      toolName="Case Converter & Lorem Ipsum Generator"
+      description="Convert text case and generate placeholder Lorem Ipsum text."
+    >
+      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+        <p className="text-lg">Case Converter & Lorem Ipsum Generator tool coming soon!</p>
+        <p className="text-sm mt-2">Transform text and fill your layouts with dummy content.</p>
+      </div>
+    </ToolPageWrapper>
   );
 }

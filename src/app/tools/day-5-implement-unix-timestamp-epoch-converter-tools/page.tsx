@@ -1,9 +1,16 @@
-"use client";
-export default function MockPage() {
+import ToolPageWrapper from "@/components/ToolPageWrapper";
+
+export default function UnixTimestampEpochConverterPage() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-100">Day 5: Implement Unix Timestamp & Epoch Converter tools</h2>
-      <p className="text-xs text-slate-400">Mock version for testing daily-builder bot execution.</p>
-    </div>
+    <ToolPageWrapper
+      toolSlug="unix-timestamp-epoch-converter"
+      toolName="Unix Timestamp & Epoch Converter"
+      description="Convert Unix timestamps to human-readable dates and vice-versa."
+    >
+      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+        <p className="text-lg">Unix Timestamp & Epoch Converter tool coming soon!</p>
+        <p className="text-sm mt-2">Convert time formats effortlessly.</p>
+      </div>
+    </ToolPageWrapper>
   );
 }
