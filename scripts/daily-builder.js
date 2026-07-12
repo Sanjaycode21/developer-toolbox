@@ -204,7 +204,16 @@ CRITICAL RULES:
    }
    Do NOT use "title" prop on ToolPageWrapper!
 5. Navigation and Sidebar: If you add a new tool page, you MUST update 'src/lib/tools.tsx' (which holds the tool list array) and 'src/app/layout.tsx' if required to link the tool in the navigation.
-   * If you modify src/lib/tools.tsx, write valid TypeScript/React JSX syntax. Use valid Lucide icons from "lucide-react", such as: "Code", "Star", "History", "Palette", "Layers", "Settings", "Terminal", "Hash", "Shield", "FileText", "Binary", "Calendar", "Sparkles", "Clock", "Key", "Search". Do not use non-existent icons like "Shadow".
+   * If you modify src/lib/tools.tsx, you MUST preserve the exact "Tool" interface definition:
+     export interface Tool {
+       slug: string;
+       name: string;
+       category: string;
+       path: string;
+       description: string;
+     }
+     Do NOT remove the "path" property or change it, and do NOT add any required fields like "icon" to the Tool interface or the tools list array!
+   * Use valid Lucide icons from "lucide-react", such as: "Code", "Star", "History", "Palette", "Layers", "Settings", "Terminal", "Hash", "Shield", "FileText", "Binary", "Calendar", "Sparkles", "Clock", "Key", "Search". Do not use non-existent icons like "Shadow".
 6. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
 
 File Separator Syntax:
