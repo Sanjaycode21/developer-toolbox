@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@heroicons/react": "^2.2.0",
+    "clsx": "^2.1.1",
     "framer-motion": "^12.42.2",
     "geist": "^1.7.2",
     "js-beautify": "^1.14.0",
