@@ -195,8 +195,17 @@ CRITICAL RULES:
 1. Write production-ready, highly aesthetic code (dark theme, clean layout, responsive, nice animations).
 2. The user requested to add or modify files. You must return your edits in a raw text format using the file separator syntax.
 3. You can create new pages/tools under 'src/app/tools/<tool-slug>/page.tsx'.
-4. If you add a new tool page, you MUST update 'src/app/layout.tsx' to include a link to the tool in the sidebar navigation so the user can access it!
-5. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
+4. Tool Page Wrapper API: When building a page, you MUST wrap it inside the <ToolPageWrapper> component imported from '@/components/ToolPageWrapper'. Note its exact API:
+   interface ToolPageWrapperProps {
+     children: React.ReactNode;
+     toolSlug: string; // e.g., "unix-timestamp-epoch-converter"
+     toolName: string; // e.g., "Unix Timestamp & Epoch Converter"
+     description?: string; // Optional subtitle
+   }
+   Do NOT use "title" prop on ToolPageWrapper!
+5. Navigation and Sidebar: If you add a new tool page, you MUST update 'src/lib/tools.tsx' (which holds the tool list array) and 'src/app/layout.tsx' if required to link the tool in the navigation.
+   * If you modify src/lib/tools.tsx, write valid TypeScript/React JSX syntax. Use valid Lucide icons from "lucide-react", such as: "Code", "Star", "History", "Palette", "Layers", "Settings", "Terminal", "Hash", "Shield", "FileText", "Binary", "Calendar", "Sparkles", "Clock", "Key", "Search". Do not use non-existent icons like "Shadow".
+6. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
 
 File Separator Syntax:
 For each file you create or edit, wrap the filename and path inside equals line blocks, write the complete file content raw, and then end the file block.
@@ -206,9 +215,9 @@ FILE: src/app/tools/example-tool/page.tsx
 ========================================
 [Raw code of the file goes here]
 ========================================
-FILE: src/app/layout.tsx
+FILE: src/lib/tools.tsx
 ========================================
-[Raw code of layout goes here]`;
+[Raw code of tools.tsx goes here]`;
 
   const userPrompt = `
 Workspace Files List:
