@@ -62,3 +62,5 @@ export default function ToolPageWrapper({ children, toolSlug, toolName, descript
     </div>
   );
 }
+
+export { ToolPageWrapper };

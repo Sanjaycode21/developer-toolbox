@@ -339,8 +339,13 @@ ${updatedLayout}`;
   fs.writeFileSync(roadmapPath, lines.join('\n'), 'utf8');
   console.log('Updated roadmap.md checklist.');
 
-  // Validate build
+  // Validate build (clear .next cache first to ensure type safety)
   try {
+    console.log('Clearing Next.js cache directory...');
+    const nextCachePath = path.join(repoDir, '.next');
+    if (fs.existsSync(nextCachePath)) {
+      fs.rmSync(nextCachePath, { recursive: true, force: true });
+    }
     console.log('Running build validation: npm run build...');
     execSync('npm run build', { stdio: 'inherit' });
     console.log('Build validation succeeded!');
