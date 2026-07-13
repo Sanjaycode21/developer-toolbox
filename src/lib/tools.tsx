@@ -1,21 +1,4 @@
-import {
-  Code,
-  Star,
-  History,
-  Palette,
-  Layers,
-  Settings,
-  Terminal,
-  Hash,
-  Shield,
-  FileText,
-  Binary,
-  Calendar,
-  Sparkles,
-  Clock, // Added Clock icon for Unix Timestamp Converter
-  Key,
-  Search,
-} from 'lucide-react';
+import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from "lucide-react";
 
 export interface Tool {
   slug: string;
@@ -23,140 +6,120 @@ export interface Tool {
   category: string;
   path: string;
   description: string;
-  icon: React.ElementType; // Lucide icon component
 }
 
 export const tools: Tool[] = [
-  // Favorites & History
   {
-    slug: 'favorites',
-    name: 'Favorites',
-    category: 'General',
-    path: '/tools/favorites',
-    description: 'Your most loved tools, all in one place.',
-    icon: Star,
+    slug: "favorites",
+    name: "Favorites",
+    category: "General",
+    path: "/tools/favorites",
+    description: "Your most loved tools, all in one place.",
   },
   {
-    slug: 'history',
-    name: 'History',
-    category: 'General',
-    path: '/tools/history',
-    description: 'Recently used tools for quick access.',
-    icon: History,
-  },
-  // Converters & Encoders
-  {
-    slug: 'base64-encoder-decoder',
-    name: 'Base64 Encoder / Decoder',
-    category: 'Converters & Encoders',
-    path: '/tools/base64-encoder-decoder',
-    description: 'Encode and decode Base64 strings.',
-    icon: Binary,
+    slug: "history",
+    name: "History",
+    category: "General",
+    path: "/tools/history",
+    description: "Recently used tools for quick access.",
   },
   {
-    slug: 'unix-timestamp-epoch-converter',
-    name: 'Unix Timestamp & Epoch Converter',
-    category: 'Converters & Encoders',
-    path: '/tools/unix-timestamp-epoch-converter',
-    description: 'Convert Unix timestamps to human-readable dates and vice-versa.',
-    icon: Clock,
+    slug: "json-formatter",
+    name: "JSON Formatter",
+    category: "Formatters",
+    path: "/tools/json-formatter",
+    description: "Beautify or minify JSON data.",
   },
   {
-    slug: 'case-converter',
-    name: 'Case Converter',
-    category: 'Text',
-    path: '/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools', // This path needs to be updated if a dedicated page is created
-    description: 'Convert text between different letter cases.',
-    icon: FileText,
-  },
-  // Generators
-  {
-    slug: 'uuid-generator',
-    name: 'UUID Generator',
-    category: 'Generators',
-    path: '/tools/day-6-implement-uuid-password-generator-tools', // This path needs to be updated if a dedicated page is created
-    description: 'Generate universally unique identifiers (UUIDs).',
-    icon: Hash,
+    slug: "base64-encoder-decoder",
+    name: "Base64 Encoder/Decoder",
+    category: "Converters",
+    path: "/tools/base64-encoder-decoder",
+    description: "Encode and decode Base64 strings.",
   },
   {
-    slug: 'password-generator',
-    name: 'Password Generator',
-    category: 'Generators',
-    path: '/tools/day-6-implement-uuid-password-generator-tools', // This path needs to be updated if a dedicated page is created
-    description: 'Create strong, random passwords.',
-    icon: Key,
+    slug: "unix-timestamp-epoch-converter",
+    name: "Unix Timestamp & Epoch Converter",
+    category: "Time",
+    path: "/tools/unix-timestamp-epoch-converter",
+    description: "Convert Unix timestamps to human-readable dates and vice-versa.",
   },
   {
-    slug: 'lorem-ipsum-generator',
-    name: 'Lorem Ipsum Generator',
-    category: 'Generators',
-    path: '/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools', // This path needs to be updated if a dedicated page is created
-    description: 'Generate placeholder text for your designs.',
-    icon: FileText,
+    slug: "color-picker",
+    name: "Color Picker",
+    category: "Design",
+    path: "/tools/color-picker",
+    description: "Pick colors and convert between formats (HEX, RGB, HSL).",
   },
   {
-    slug: 'css-shadow-generator',
-    name: 'CSS Shadow Generator',
-    category: 'Generators',
-    path: '/tools/day-4-implement-css-shadow-gradient-generator-tools', // This path needs to be updated if a dedicated page is created
-    description: 'Generate complex CSS box and text shadows.',
-    icon: Layers,
+    slug: "regex-tester-generator",
+    name: "Regex Tester & Generator",
+    category: "Text",
+    path: "/tools/regex-tester-generator",
+    description: "Test and generate regular expressions.",
+  },
+  // Day 3: JWT Decoder
+  {
+    slug: "jwt-decoder",
+    name: "JWT Decoder",
+    category: "Security",
+    path: "/tools/jwt-decoder",
+    description: "Decode JWT tokens to inspect header, payload, and verify signature.",
+  },
+  // Day 4: CSS Shadow & Gradient Generator
+  {
+    slug: "css-shadow-generator",
+    name: "CSS Shadow Generator",
+    category: "Design",
+    path: "/tools/css-shadow-generator",
+    description: "Generate various CSS box and text shadows.",
   },
   {
-    slug: 'css-gradient-generator',
-    name: 'CSS Gradient Generator',
-    category: 'Generators',
-    path: '/tools/day-4-implement-css-shadow-gradient-generator-tools', // This path needs to be updated if a dedicated page is created
-    description: 'Create beautiful CSS gradients.',
-    icon: Palette,
+    slug: "css-gradient-generator",
+    name: "CSS Gradient Generator",
+    category: "Design",
+    path: "/tools/css-gradient-generator",
+    description: "Create beautiful CSS linear and radial gradients.",
   },
-  // Formatters
+  // Day 6: UUID & Password Generator
   {
-    slug: 'json-formatter',
-    name: 'JSON Formatter',
-    category: 'Formatters',
-    path: '/tools/json-formatter',
-    description: 'Beautify and validate JSON data.',
-    icon: Code,
-  },
-  // Web Utilities
-  {
-    slug: 'color-picker',
-    name: 'Color Picker',
-    category: 'Web Utilities',
-    path: '/tools/color-picker',
-    description: 'Select and convert colors.',
-    icon: Palette,
-  },
-  // Dev Utilities
-  {
-    slug: 'jwt-decoder',
-    name: 'JWT Decoder',
-    category: 'Dev Utilities',
-    path: '/tools/day-3-implement-jwt-decoder-tool/page', // This path needs to be updated if a dedicated page is created
-    description: 'Decode JSON Web Tokens to inspect header, payload, and signature.',
-    icon: Shield,
+    slug: "uuid-generator",
+    name: "UUID Generator",
+    category: "Generators",
+    path: "/tools/uuid-generator",
+    description: "Generate universally unique identifiers (UUIDs).",
   },
   {
-    slug: 'regex-tester',
-    name: 'Regex Tester',
-    category: 'Dev Utilities',
-    path: '/tools/regex-tester-generator',
-    description: 'Test and debug regular expressions.',
-    icon: Search,
+    slug: "password-generator",
+    name: "Password Generator",
+    category: "Security",
+    path: "/tools/password-generator",
+    description: "Create strong, random passwords with custom options.",
+  },
+  // Day 7: Case Converter & Lorem Ipsum Generator
+  {
+    slug: "case-converter",
+    name: "Case Converter",
+    category: "Text",
+    path: "/tools/case-converter",
+    description: "Convert text between different casing styles.",
   },
   {
-    slug: 'regex-generator',
-    name: 'Regex Generator',
-    category: 'Dev Utilities',
-    path: '/tools/regex-tester-generator',
-    description: 'Generate regular expressions from examples.',
-    icon: Sparkles,
+    slug: "lorem-ipsum-generator",
+    name: "Lorem Ipsum Generator",
+    category: "Generators",
+    path: "/tools/lorem-ipsum-generator",
+    description: "Generate placeholder text for your designs and layouts.",
   },
 ];
 
-export const getToolBySlug = (slug: string) => tools.find((tool) => tool.slug === slug);
-export const getToolByPath = (path: string) => tools.find((tool) => tool.path === path);
+export const getToolBySlug = (slug: string): Tool | undefined => {
+  return tools.find((tool) => tool.slug === slug);
+};
+
+export const getToolByPath = (path: string): Tool | undefined => {
+  return tools.find((tool) => tool.path === path);
+};
 
 export const toolsByCategory = tools.reduce((acc, tool) => {
   if (!acc[tool.category]) {
