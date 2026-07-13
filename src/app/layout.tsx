@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar"; // Import the new Sidebar component
+import { Toaster } from 'react-hot-toast'; // Import Toaster
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,6 +51,23 @@ export default function RootLayout({
             {children}
           </main>
         </div>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#334155', // slate-700
+              color: '#f8fafc', // slate-50
+              fontSize: '0.875rem', // text-sm
+              padding: '0.75rem 1rem',
+              borderRadius: '0.5rem', // rounded-lg
+              border: '1px solid #475569', // slate-600
+            },
+            iconTheme: {
+              primary: '#6366f1', // indigo-500
+              secondary: '#f8fafc', // slate-50
+            },
+          }}
+        />
       </body>
     </html>
   );
