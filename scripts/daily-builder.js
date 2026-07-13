@@ -203,7 +203,8 @@ CRITICAL RULES:
      description?: string; // Optional subtitle
    }
    Do NOT use "title" prop on ToolPageWrapper!
-5. Navigation and Sidebar: If you add a new tool page, you MUST update 'src/lib/tools.tsx' (which holds the tool list array) and 'src/app/layout.tsx' if required to link the tool in the navigation.
+5. No Shadcn/UI or Sonner: Do NOT import components from '@/components/ui/*' or use 'sonner' (which are not installed). Instead, build clean raw HTML inputs, buttons, selects, and textareas styled with Tailwind CSS classes, and use 'react-hot-toast' for notifications.
+6. Navigation and Sidebar: If you add a new tool page, you MUST update 'src/lib/tools.tsx' (which holds the tool list array).
    * If you modify src/lib/tools.tsx, you MUST preserve the exact "Tool" interface definition:
      export interface Tool {
        slug: string;
@@ -213,8 +214,9 @@ CRITICAL RULES:
        description: string;
      }
      Do NOT remove the "path" property or change it, and do NOT add any required fields like "icon" to the Tool interface or the tools list array!
+   * You MUST preserve the helper functions at the bottom of src/lib/tools.tsx: "getToolBySlug", "getToolByPath", and "toolsByCategory". Make sure they are exported exactly as they were!
    * Use valid Lucide icons from "lucide-react", such as: "Code", "Star", "History", "Palette", "Layers", "Settings", "Terminal", "Hash", "Shield", "FileText", "Binary", "Calendar", "Sparkles", "Clock", "Key", "Search". Do not use non-existent icons like "Shadow".
-6. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
+7. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
 
 File Separator Syntax:
 For each file you create or edit, wrap the filename and path inside equals line blocks, write the complete file content raw, and then end the file block.
