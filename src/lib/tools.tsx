@@ -13,8 +13,8 @@ import {
   Calendar,
   Sparkles,
   Clock, // Added Clock icon
-  Key,
-  Search,
+  Key, // Added Key icon for UUID/Password
+  Search, // Added Search icon for Regex
 } from "lucide-react";
 
 export interface Tool {
@@ -23,7 +23,7 @@ export interface Tool {
   category: string;
   path: string;
   description: string;
-  icon: React.ElementType; // Added icon property
+  icon: React.ElementType; // Lucide icon component
 }
 
 export const tools: Tool[] = [
@@ -40,7 +40,7 @@ export const tools: Tool[] = [
     name: "History",
     category: "General",
     path: "/tools/history",
-    description: "Recently used tools and past conversions.",
+    description: "Recently used tools and their past inputs.",
     icon: History,
   },
   {
@@ -48,7 +48,7 @@ export const tools: Tool[] = [
     name: "JSON Formatter",
     category: "Formatters",
     path: "/tools/json-formatter",
-    description: "Beautify or minify JSON data for better readability.",
+    description: "Beautify and validate JSON data.",
     icon: Code,
   },
   {
@@ -60,86 +60,73 @@ export const tools: Tool[] = [
     icon: Binary,
   },
   {
-    slug: "unix-timestamp-epoch-converter",
-    name: "Unix Timestamp & Epoch Converter",
-    category: "Converters",
-    path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice versa.",
-    icon: Clock,
-  },
-  {
-    slug: "case-converter",
-    name: "Case Converter",
-    category: "Text",
-    path: "/tools/case-converter",
-    description: "Convert text between different letter cases.",
-    icon: FileText,
-  },
-  {
-    slug: "lorem-ipsum-generator",
-    name: "Lorem Ipsum Generator",
-    category: "Text",
-    path: "/tools/lorem-ipsum-generator",
-    description: "Generate placeholder text for your designs and layouts.",
-    icon: Sparkles,
-  },
-  {
-    slug: "uuid-generator",
-    name: "UUID Generator",
-    category: "Generators",
-    path: "/tools/uuid-generator",
-    description: "Generate universally unique identifiers (UUIDs).",
-    icon: Hash,
-  },
-  {
-    slug: "password-generator",
-    name: "Password Generator",
-    category: "Generators",
-    path: "/tools/password-generator",
-    description: "Create strong, random passwords.",
-    icon: Key,
-  },
-  {
-    slug: "regex-tester-generator",
-    name: "Regex Tester & Generator",
-    category: "Utilities",
-    path: "/tools/regex-tester-generator",
-    description: "Test and generate regular expressions.",
-    icon: Search,
-  },
-  {
     slug: "color-picker",
     name: "Color Picker",
-    category: "Design",
+    category: "Utilities",
     path: "/tools/color-picker",
-    description: "Select colors and get their HEX, RGB, HSL, and other values.",
+    description: "Select colors and convert between formats (HEX, RGB, HSL).",
     icon: Palette,
-  },
-  {
-    slug: "css-shadow-gradient-generator",
-    name: "CSS Shadow & Gradient Generator",
-    category: "Design",
-    path: "/tools/css-shadow-gradient-generator",
-    description: "Generate complex CSS shadows and gradients with ease.",
-    icon: Layers,
   },
   {
     slug: "jwt-decoder",
     name: "JWT Decoder",
     category: "Security",
     path: "/tools/jwt-decoder",
-    description: "Decode JSON Web Tokens to inspect their header, payload, and verify signature.",
+    description: "Decode JWT tokens to inspect header, payload, and signature.",
     icon: Shield,
+  },
+  {
+    slug: "css-shadow-gradient-generator",
+    name: "CSS Shadow & Gradient Generator",
+    category: "Generators",
+    path: "/tools/css-shadow-gradient-generator",
+    description: "Generate complex CSS shadows and gradients with live preview.",
+    icon: Layers,
+  },
+  {
+    slug: "unix-timestamp-epoch-converter",
+    name: "Unix Timestamp & Epoch Converter",
+    category: "Converters",
+    path: "/tools/unix-timestamp-epoch-converter",
+    description: "Convert between Unix timestamps and human-readable dates.",
+    icon: Clock, // Assigned Clock icon
+  },
+  {
+    slug: "uuid-password-generator",
+    name: "UUID & Password Generator",
+    category: "Generators",
+    path: "/tools/uuid-password-generator",
+    description: "Generate strong passwords and UUIDs (v1, v4, v5).",
+    icon: Key, // Assigned Key icon
+  },
+  {
+    slug: "case-converter",
+    name: "Case Converter",
+    category: "Text",
+    path: "/tools/case-converter",
+    description: "Convert text between various case formats (e.g., camelCase, snake_case).",
+    icon: FileText,
+  },
+  {
+    slug: "lorem-ipsum-generator",
+    name: "Lorem Ipsum Generator",
+    category: "Generators",
+    path: "/tools/lorem-ipsum-generator",
+    description: "Generate placeholder text for your designs and layouts.",
+    icon: Sparkles,
+  },
+  {
+    slug: "regex-tester-generator",
+    name: "Regex Tester & Generator",
+    category: "Text",
+    path: "/tools/regex-tester-generator",
+    description: "Test and generate regular expressions with explanations.",
+    icon: Search,
   },
 ];
 
-export const getToolBySlug = (slug: string): Tool | undefined => {
-  return tools.find((tool) => tool.slug === slug);
-};
-
-export const getToolByPath = (path: string): Tool | undefined => {
-  return tools.find((tool) => tool.path === path);
-};
+export const getToolBySlug = (slug: string) => tools.find((tool) => tool.slug === slug);
+export const getToolByPath = (path: string) => tools.find((tool) => tool.path === path);
 
 export const toolsByCategory = tools.reduce((acc, tool) => {
   if (!acc[tool.category]) {
