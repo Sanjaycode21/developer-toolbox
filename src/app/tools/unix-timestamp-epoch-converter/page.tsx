@@ -1,303 +1,235 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import toast from 'react-hot-toast';
-import { Clock, Copy, CalendarDays } from 'lucide-react';
+import { Clock, CalendarDays, ArrowRight, ArrowLeft, RotateCcw } from 'lucide-react';
 
 const UnixTimestampConverterPage: React.FC = () => {
   const [timestampInput, setTimestampInput] = useState<string>('');
   const [dateInput, setDateInput] = useState<string>('');
-  const [outputDate, setOutputDate] = useState<string>('');
-  const [outputTimestampSeconds, setOutputTimestampSeconds] = useState<string>('');
-  const [outputTimestampMilliseconds, setOutputTimestampMilliseconds] = useState<string>('');
-  const [isMilliseconds, setIsMilliseconds] = useState<boolean>(false);
+  const [timestampOutput, setTimestampOutput] = useState<string>('');
+  const [dateOutput, setDateOutput] = useState<string>('');
+  const [unit, setUnit] = useState<'seconds' | 'milliseconds'>('seconds');
 
-  // Helper to copy text to clipboard
-  const copyToClipboard = useCallback((text: string, message: string) => {
-    navigator.clipboard.writeText(text)
-      .then(() => toast.success(message))
-      .catch(() => toast.error('Failed to copy!'));
-  }, []);
+  const dateTimeFormatOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'shortOffset',
+  };
 
-  // Convert timestamp to date
-  const convertTimestampToDate = useCallback((timestamp: string, useMs: boolean) => {
-    if (!timestamp) {
-      setOutputDate('');
-      return;
-    }
-    const numTimestamp = parseInt(timestamp, 10);
-    if (isNaN(numTimestamp)) {
-      setOutputDate('Invalid timestamp');
-      return;
-    }
-    const date = new Date(useMs ? numTimestamp : numTimestamp * 1000);
+  const formatDate = useCallback((date: Date): string => {
     if (isNaN(date.getTime())) {
-      setOutputDate('Invalid timestamp');
-      return;
-    }
-    setOutputDate(date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      timeZoneName: 'short',
-    }));
-  }, []);
-
-  // Convert date to timestamp
-  const convertDateToTimestamp = useCallback((dateString: string) => {
-    if (!dateString) {
-      setOutputTimestampSeconds('');
-      setOutputTimestampMilliseconds('');
-      return;
+      return '';
     }
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        setOutputTimestampSeconds('Invalid date');
-        setOutputTimestampMilliseconds('Invalid date');
-        return;
-      }
-      const seconds = Math.floor(date.getTime() / 1000);
-      const milliseconds = date.getTime();
-      setOutputTimestampSeconds(seconds.toString());
-      setOutputTimestampMilliseconds(milliseconds.toString());
+      return new Intl.DateTimeFormat('en-US', dateTimeFormatOptions).format(date);
     } catch (error) {
-      setOutputTimestampSeconds('Invalid date');
-      setOutputTimestampMilliseconds('Invalid date');
+      console.error("Error formatting date:", error);
+      return date.toISOString(); // Fallback
     }
   }, []);
 
-  // Handle timestamp input change
-  const handleTimestampInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTimestampInput(value);
-    convertTimestampToDate(value, isMilliseconds);
-  }, [convertTimestampToDate, isMilliseconds]);
+  const handleTimestampToDateConversion = useCallback(() => {
+    if (!timestampInput) {
+      setDateOutput('');
+      toast.error('Please enter a timestamp.');
+      return;
+    }
 
-  // Handle date input change
-  const handleDateInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setDateInput(value);
-    convertDateToTimestamp(value);
-  }, [convertDateToTimestamp]);
+    const numTimestamp = Number(timestampInput);
+    if (isNaN(numTimestamp)) {
+      setDateOutput('');
+      toast.error('Invalid timestamp. Please enter a numeric value.');
+      return;
+    }
 
-  // Toggle milliseconds/seconds
-  const handleToggleMilliseconds = useCallback(() => {
-    setIsMilliseconds(prev => {
-      const newState = !prev;
-      // Re-convert if timestamp input exists
-      if (timestampInput) {
-        convertTimestampToDate(timestampInput, newState);
-      }
-      return newState;
-    });
-  }, [timestampInput, convertTimestampToDate]);
+    const date = new Date(unit === 'seconds' ? numTimestamp * 1000 : numTimestamp);
+    if (isNaN(date.getTime())) {
+      setDateOutput('');
+      toast.error('Could not convert timestamp to a valid date.');
+      return;
+    }
 
-  // Get current timestamp and update both sections
-  const getCurrentTimestamp = useCallback(() => {
+    setDateOutput(formatDate(date));
+    toast.success('Timestamp converted to date!');
+  }, [timestampInput, unit, formatDate]);
+
+  const handleDateToTimestampConversion = useCallback(() => {
+    if (!dateInput) {
+      setTimestampOutput('');
+      toast.error('Please enter a date and time.');
+      return;
+    }
+
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) {
+      setTimestampOutput('');
+      toast.error('Invalid date format. Please use a recognized date string (e.g., "2023-10-27 10:30:00 GMT+0000").');
+      return;
+    }
+
+    const timestamp = unit === 'seconds' ? Math.floor(date.getTime() / 1000) : date.getTime();
+    setTimestampOutput(String(timestamp));
+    toast.success('Date converted to timestamp!');
+  }, [dateInput, unit]);
+
+  const handleGetCurrentTimestamp = useCallback(() => {
     const now = new Date();
-    const currentSeconds = Math.floor(now.getTime() / 1000);
-    const currentMilliseconds = now.getTime();
+    const currentTimestamp = unit === 'seconds' ? Math.floor(now.getTime() / 1000) : now.getTime();
+    setTimestampInput(String(currentTimestamp));
+    setTimestampOutput(String(currentTimestamp));
+    setDateInput(formatDate(now));
+    setDateOutput(formatDate(now));
+    toast.success('Current timestamp and date loaded!');
+  }, [unit, formatDate]);
 
-    // Update Timestamp to Date section
-    const timestampToSet = isMilliseconds ? currentMilliseconds.toString() : currentSeconds.toString();
-    setTimestampInput(timestampToSet);
-    setOutputDate(now.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      timeZoneName: 'short',
-    }));
+  const handleClear = useCallback(() => {
+    setTimestampInput('');
+    setDateInput('');
+    setTimestampOutput('');
+    setDateOutput('');
+    setUnit('seconds');
+    toast.success('All fields cleared!');
+  }, []);
 
-    // Update Date to Timestamp section
-    // Format for datetime-local input: YYYY-MM-DDTHH:MM
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const nowIso = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-    setDateInput(nowIso);
-    setOutputTimestampSeconds(currentSeconds.toString());
-    setOutputTimestampMilliseconds(currentMilliseconds.toString());
-  }, [isMilliseconds]);
-
-  // Initialize with current timestamp on mount
+  // Effect to update outputs when unit changes
   useEffect(() => {
-    getCurrentTimestamp();
-  }, [getCurrentTimestamp]);
+    if (timestampInput) {
+      handleTimestampToDateConversion();
+    }
+    if (dateInput) {
+      handleDateToTimestampConversion();
+    }
+  }, [unit, timestampInput, dateInput, handleTimestampToDateConversion, handleDateToTimestampConversion]);
 
   return (
     <ToolPageWrapper
       toolSlug="unix-timestamp-epoch-converter"
       toolName="Unix Timestamp & Epoch Converter"
-      description="Convert Unix timestamps to human-readable dates and vice-versa. Supports seconds and milliseconds."
+      description="Convert Unix timestamps to human-readable dates and vice-versa, with support for seconds and milliseconds."
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Timestamp to Date Converter */}
-        <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-400" /> Timestamp to Date
-          </h2>
-          <div className="mb-4">
-            <label htmlFor="timestampInput" className="block text-sm font-medium text-slate-300 mb-2">
-              Unix Timestamp ({isMilliseconds ? 'Milliseconds' : 'Seconds'})
-            </label>
-            <div className="flex gap-2">
+      <div className="flex flex-col gap-6">
+        {/* Unit Selector */}
+        <div className="flex items-center gap-4 p-4 bg-slate-800 border border-slate-700 rounded-lg shadow-md">
+          <span className="text-slate-300 font-medium">Timestamp Unit:</span>
+          <div className="flex gap-4">
+            <label className="inline-flex items-center cursor-pointer">
               <input
-                type="text"
-                id="timestampInput"
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-                value={timestampInput}
-                onChange={handleTimestampInputChange}
-                placeholder="e.g., 1678886400 or 1678886400000"
+                type="radio"
+                className="form-radio h-4 w-4 text-indigo-600 bg-slate-700 border-slate-600 focus:ring-indigo-500"
+                name="unit"
+                value="seconds"
+                checked={unit === 'seconds'}
+                onChange={() => setUnit('seconds')}
               />
-              <button
-                onClick={getCurrentTimestamp}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors flex items-center gap-1"
-              >
-                <Clock className="w-4 h-4" /> Now
-              </button>
-            </div>
-            <div className="mt-2 flex items-center">
-              <input
-                type="checkbox"
-                id="isMilliseconds"
-                checked={isMilliseconds}
-                onChange={handleToggleMilliseconds}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-600 rounded bg-slate-700"
-              />
-              <label htmlFor="isMilliseconds" className="ml-2 text-sm text-slate-300 cursor-pointer">
-                Input is in Milliseconds
-              </label>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Converted Date
+              <span className="ml-2 text-slate-200">Seconds</span>
             </label>
-            <div className="relative">
-              <textarea
-                readOnly
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm min-h-[80px] resize-none"
-                value={outputDate}
-                placeholder="Converted date will appear here..."
+            <label className="inline-flex items-center cursor-pointer">
+              <input
+                type="radio"
+                className="form-radio h-4 w-4 text-indigo-600 bg-slate-700 border-slate-600 focus:ring-indigo-500"
+                name="unit"
+                value="milliseconds"
+                checked={unit === 'milliseconds'}
+                onChange={() => setUnit('milliseconds')}
               />
-              {outputDate && outputDate !== 'Invalid timestamp' && (
-                <button
-                  onClick={() => copyToClipboard(outputDate, 'Date copied to clipboard!')}
-                  className="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors"
-                  aria-label="Copy date"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setTimestampInput('');
-                setOutputDate('');
-              }}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium transition-colors"
-            >
-              Clear
-            </button>
+              <span className="ml-2 text-slate-200">Milliseconds</span>
+            </label>
           </div>
         </div>
 
-        {/* Date to Timestamp Converter */}
-        <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-indigo-400" /> Date to Timestamp
-          </h2>
-          <div className="mb-4">
-            <label htmlFor="dateInput" className="block text-sm font-medium text-slate-300 mb-2">
-              Date & Time
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Timestamp to Date Converter */}
+          <div className="flex flex-col gap-4 p-6 bg-slate-800 border border-slate-700 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold text-slate-100 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-indigo-400" /> Timestamp to Date
+            </h3>
+            <label htmlFor="timestampInput" className="text-sm font-medium text-slate-300">
+              Enter Unix Timestamp ({unit === 'seconds' ? 'seconds' : 'milliseconds'})
             </label>
             <input
-              type="datetime-local"
-              id="dateInput"
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-              value={dateInput}
-              onChange={handleDateInputChange}
+              id="timestampInput"
+              type="text"
+              value={timestampInput}
+              onChange={(e) => setTimestampInput(e.target.value)}
+              placeholder={`e.g., ${unit === 'seconds' ? '1678886400' : '1678886400000'}`}
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 outline-none transition-colors"
             />
-            <p className="text-xs text-slate-400 mt-1">
-              Enter a date and time. Uses your local timezone.
-            </p>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Converted Unix Timestamp (Seconds)
-            </label>
-            <div className="relative">
-              <input
-                readOnly
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-                value={outputTimestampSeconds}
-                placeholder="Converted timestamp in seconds..."
-              />
-              {outputTimestampSeconds && outputTimestampSeconds !== 'Invalid date' && (
-                <button
-                  onClick={() => copyToClipboard(outputTimestampSeconds, 'Timestamp (seconds) copied!')}
-                  className="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors"
-                  aria-label="Copy timestamp seconds"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Converted Unix Timestamp (Milliseconds)
-            </label>
-            <div className="relative">
-              <input
-                readOnly
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-                value={outputTimestampMilliseconds}
-                placeholder="Converted timestamp in milliseconds..."
-              />
-              {outputTimestampMilliseconds && outputTimestampMilliseconds !== 'Invalid date' && (
-                <button
-                  onClick={() => copyToClipboard(outputTimestampMilliseconds, 'Timestamp (milliseconds) copied!')}
-                  className="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors"
-                  aria-label="Copy timestamp milliseconds"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
             <button
-              onClick={() => {
-                setDateInput('');
-                setOutputTimestampSeconds('');
-                setOutputTimestampMilliseconds('');
-              }}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium transition-colors"
+              onClick={handleTimestampToDateConversion}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
             >
-              Clear
+              Convert <ArrowRight className="h-4 w-4" />
             </button>
+            <label htmlFor="dateOutput" className="text-sm font-medium text-slate-300 mt-2">
+              Converted Date & Time
+            </label>
+            <textarea
+              id="dateOutput"
+              value={dateOutput}
+              readOnly
+              rows={3}
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 outline-none resize-y font-mono"
+              placeholder="Result will appear here..."
+            />
           </div>
+
+          {/* Date to Timestamp Converter */}
+          <div className="flex flex-col gap-4 p-6 bg-slate-800 border border-slate-700 rounded-lg shadow-md">
+            <h3 className="text-xl font-semibold text-slate-100 flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-indigo-400" /> Date to Timestamp
+            </h3>
+            <label htmlFor="dateInput" className="text-sm font-medium text-slate-300">
+              Enter Date & Time
+            </label>
+            <input
+              id="dateInput"
+              type="text"
+              value={dateInput}
+              onChange={(e) => setDateInput(e.target.value)}
+              placeholder="e.g., 2023-10-27 10:30:00 GMT+0000"
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 outline-none transition-colors"
+            />
+            <button
+              onClick={handleDateToTimestampConversion}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
+            >
+              Convert <ArrowLeft className="h-4 w-4" />
+            </button>
+            <label htmlFor="timestampOutput" className="text-sm font-medium text-slate-300 mt-2">
+              Converted Unix Timestamp ({unit === 'seconds' ? 'seconds' : 'milliseconds'})
+            </label>
+            <textarea
+              id="timestampOutput"
+              value={timestampOutput}
+              readOnly
+              rows={3}
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 outline-none resize-y font-mono"
+              placeholder="Result will appear here..."
+            />
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-4 justify-center mt-4">
+          <button
+            onClick={handleGetCurrentTimestamp}
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
+          >
+            <Clock className="h-5 w-5" /> Get Current Timestamp
+          </button>
+          <button
+            onClick={handleClear}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
+          >
+            <RotateCcw className="h-5 w-5" /> Clear All
+          </button>
         </div>
       </div>
     </ToolPageWrapper>
