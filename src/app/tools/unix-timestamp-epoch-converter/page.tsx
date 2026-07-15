@@ -1,249 +1,281 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ToolPageWrapper from '@/components/ToolPageWrapper';
 import toast from 'react-hot-toast';
-import { Clock, Copy } from 'lucide-react';
+import { Copy, Clock, Calendar } from 'lucide-react';
 
 const UnixTimestampEpochConverterPage: React.FC = () => {
-  const [timestampInput, setTimestampInput] = useState<string>('');
-  const [timestampUnit, setTimestampUnit] = useState<'seconds' | 'milliseconds'>('seconds');
-  const [convertedDate, setConvertedDate] = useState<string>('');
-
+  const [unixInput, setUnixInput] = useState<string>('');
   const [dateInput, setDateInput] = useState<string>('');
-  const [convertedTimestampSeconds, setConvertedTimestampSeconds] = useState<string>('');
-  const [convertedTimestampMilliseconds, setConvertedTimestampMilliseconds] = useState<string>('');
+  const [convertedDateLocal, setConvertedDateLocal] = useState<string>('');
+  const [convertedDateUTC, setConvertedDateUTC] = useState<string>('');
+  const [convertedUnix, setConvertedUnix] = useState<string>('');
+  const [currentUnix, setCurrentUnix] = useState<string>('');
+  const [currentDateLocal, setCurrentDateLocal] = useState<string>('');
+  const [currentDateUTC, setCurrentDateUTC] = useState<string>('');
 
-  // Function to convert timestamp to date
-  const convertTimestampToDate = useCallback(() => {
-    if (!timestampInput) {
-      setConvertedDate('');
-      return;
-    }
+  const copyToClipboard = useCallback((text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => toast.success(`${label} copied to clipboard!`))
+      .catch(() => toast.error(`Failed to copy ${label}.`));
+  }, []);
 
-    const numTimestamp = parseFloat(timestampInput);
-    if (isNaN(numTimestamp)) {
-      setConvertedDate('Invalid timestamp');
-      toast.error('Please enter a valid number for the timestamp.');
-      return;
-    }
+  const formatDate = useCallback((timestamp: number, timezone: 'local' | 'utc'): string => {
+    if (isNaN(timestamp)) return 'Invalid Timestamp';
+    const date = new Date(timestamp * 1000); // Unix timestamp is in seconds, Date expects milliseconds
 
-    const ms = timestampUnit === 'seconds' ? numTimestamp * 1000 : numTimestamp;
-    const date = new Date(ms);
-
-    if (isNaN(date.getTime())) {
-      setConvertedDate('Invalid date');
-      toast.error('Could not convert timestamp to a valid date.');
-      return;
-    }
-
-    setConvertedDate(date.toLocaleString('en-US', {
+    const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      timeZoneName: 'short',
-      hour12: false, // Use 24-hour format
-    }));
-  }, [timestampInput, timestampUnit]);
+      hour12: false,
+    };
 
-  // Function to convert date to timestamp
-  const convertDateToTimestamp = useCallback(() => {
-    if (!dateInput) {
-      setConvertedTimestampSeconds('');
-      setConvertedTimestampMilliseconds('');
+    if (timezone === 'utc') {
+      return date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+    } else {
+      return date.toLocaleString(undefined, options);
+    }
+  }, []);
+
+  const convertUnixToDate = useCallback(() => {
+    const timestamp = parseInt(unixInput, 10);
+    if (isNaN(timestamp) || unixInput.trim() === '') {
+      setConvertedDateLocal('Invalid Unix Timestamp');
+      setConvertedDateUTC('Invalid Unix Timestamp');
       return;
     }
+    setConvertedDateLocal(formatDate(timestamp, 'local'));
+    setConvertedDateUTC(formatDate(timestamp, 'utc'));
+  }, [unixInput, formatDate]);
 
-    const date = new Date(dateInput);
-
-    if (isNaN(date.getTime())) {
-      setConvertedTimestampSeconds('Invalid date');
-      setConvertedTimestampMilliseconds('Invalid date');
-      toast.error('Please enter a valid date string (e.g., "2023-10-27 10:30:00 GMT").');
+  const convertDateToUnix = useCallback(() => {
+    if (dateInput.trim() === '') {
+      setConvertedUnix('Invalid Date/Time');
       return;
     }
-
-    const ms = date.getTime();
-    const seconds = Math.floor(ms / 1000);
-
-    setConvertedTimestampMilliseconds(ms.toString());
-    setConvertedTimestampSeconds(seconds.toString());
+    try {
+      const date = new Date(dateInput);
+      if (isNaN(date.getTime())) {
+        setConvertedUnix('Invalid Date/Time');
+        return;
+      }
+      setConvertedUnix(Math.floor(date.getTime() / 1000).toString());
+    } catch (error) {
+      setConvertedUnix('Invalid Date/Time');
+    }
   }, [dateInput]);
 
-  // Function to get current timestamp
-  const getCurrentTimestamp = useCallback(() => {
-    const now = Date.now(); // milliseconds
-    setTimestampInput(now.toString());
-    setTimestampUnit('milliseconds');
-    toast.success('Current timestamp loaded.');
-  }, []);
-
-  // Effect to re-convert when inputs change
-  useEffect(() => {
-    convertTimestampToDate();
-  }, [timestampInput, timestampUnit, convertTimestampToDate]);
+  const updateCurrentTimestamps = useCallback(() => {
+    const now = Math.floor(Date.now() / 1000);
+    setCurrentUnix(now.toString());
+    setCurrentDateLocal(formatDate(now, 'local'));
+    setCurrentDateUTC(formatDate(now, 'utc'));
+  }, [formatDate]);
 
   useEffect(() => {
-    convertDateToTimestamp();
-  }, [dateInput, convertDateToTimestamp]);
+    updateCurrentTimestamps();
+    const interval = setInterval(updateCurrentTimestamps, 1000); // Update every second
+    return () => clearInterval(interval);
+  }, [updateCurrentTimestamps]);
 
-  const copyToClipboard = useCallback((text: string, label: string) => {
-    if (text) {
-      navigator.clipboard.writeText(text);
-      toast.success(`${label} copied to clipboard!`);
-    } else {
-      toast.error(`Nothing to copy for ${label}.`);
-    }
+  // Set initial dateInput to current local time in a format suitable for datetime-local input
+  useEffect(() => {
+    const now = new Date();
+    const formattedDate = now.toISOString().slice(0, 19); // "YYYY-MM-DDTHH:mm:ss"
+    setDateInput(formattedDate);
   }, []);
+
 
   return (
     <ToolPageWrapper
       toolSlug="unix-timestamp-epoch-converter"
       toolName="Unix Timestamp & Epoch Converter"
-      description="Convert Unix timestamps to human-readable dates and vice-versa."
+      description="Convert between Unix timestamps (Epoch) and human-readable dates and times."
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Timestamp to Date Converter */}
+        {/* Current Timestamp Section */}
         <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
           <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-400" /> Timestamp to Date
+            <Clock className="w-5 h-5 text-indigo-400" /> Current Timestamp
           </h2>
-          <div className="mb-4">
-            <label htmlFor="timestampInput" className="block text-sm font-medium text-slate-300 mb-2">
-              Unix Timestamp
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="timestampInput"
-                type="text"
-                value={timestampInput}
-                onChange={(e) => setTimestampInput(e.target.value)}
-                placeholder="e.g., 1678886400 or 1678886400000"
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-              />
-              <select
-                value={timestampUnit}
-                onChange={(e) => setTimestampUnit(e.target.value as 'seconds' | 'milliseconds')}
-                className="bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-              >
-                <option value="seconds">Seconds</option>
-                <option value="milliseconds">Milliseconds</option>
-              </select>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Unix Timestamp (Epoch)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentUnix}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={() => copyToClipboard(currentUnix, 'Current Unix Timestamp')}
+                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors duration-200"
+                  title="Copy Unix Timestamp"
+                >
+                  <Copy className="w-4 h-4 text-slate-300" />
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="flex gap-3 mb-6">
-            <button
-              onClick={convertTimestampToDate}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm"
-            >
-              Convert Timestamp
-            </button>
-            <button
-              onClick={getCurrentTimestamp}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium py-2 px-4 rounded-md transition-colors text-sm"
-            >
-              Get Current Timestamp
-            </button>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Converted Date
-            </label>
-            <div className="relative">
-              <textarea
-                readOnly
-                value={convertedDate}
-                placeholder="Converted date will appear here..."
-                rows={3}
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm resize-none"
-              />
-              <button
-                onClick={() => copyToClipboard(convertedDate, 'Converted Date')}
-                className="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors"
-                aria-label="Copy converted date"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Local Date & Time</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentDateLocal}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={() => copyToClipboard(currentDateLocal, 'Current Local Date')}
+                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors duration-200"
+                  title="Copy Local Date & Time"
+                >
+                  <Copy className="w-4 h-4 text-slate-300" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">UTC Date & Time</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentDateUTC}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={() => copyToClipboard(currentDateUTC, 'Current UTC Date')}
+                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors duration-200"
+                  title="Copy UTC Date & Time"
+                >
+                  <Copy className="w-4 h-4 text-slate-300" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Date to Timestamp Converter */}
+        {/* Unix to Date Converter */}
         <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
           <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-400" /> Date to Timestamp
+            <Calendar className="w-5 h-5 text-emerald-400" /> Unix to Date
           </h2>
-          <div className="mb-4">
-            <label htmlFor="dateInput" className="block text-sm font-medium text-slate-300 mb-2">
-              Date & Time String
-            </label>
-            <input
-              id="dateInput"
-              type="text"
-              value={dateInput}
-              onChange={(e) => setDateInput(e.target.value)}
-              placeholder="e.g., 2023-10-27 10:30:00 GMT"
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-            />
-            <p className="text-xs text-slate-400 mt-1">
-              (Uses browser's date parsing. For best results, include timezone.)
-            </p>
-          </div>
-
-          <div className="mb-6">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="unix-input" className="block text-sm font-medium text-slate-300 mb-1">
+                Enter Unix Timestamp (e.g., 1678886400)
+              </label>
+              <input
+                id="unix-input"
+                type="text"
+                value={unixInput}
+                onChange={(e) => setUnixInput(e.target.value)}
+                placeholder="e.g., 1678886400"
+                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+              />
+            </div>
             <button
-              onClick={convertDateToTimestamp}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm"
+              onClick={convertUnixToDate}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
             >
-              Convert Date
+              Convert Unix to Date
             </button>
+            {convertedDateLocal && (
+              <div className="space-y-2 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Local Date & Time</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={convertedDateLocal}
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(convertedDateLocal, 'Converted Local Date')}
+                      className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors duration-200"
+                      title="Copy Local Date & Time"
+                    >
+                      <Copy className="w-4 h-4 text-slate-300" />
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">UTC Date & Time</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={convertedDateUTC}
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(convertedDateUTC, 'Converted UTC Date')}
+                      className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors duration-200"
+                      title="Copy UTC Date & Time"
+                    >
+                      <Copy className="w-4 h-4 text-slate-300" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Unix Timestamp (Seconds)
-            </label>
-            <div className="relative">
+        {/* Date to Unix Converter */}
+        <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700 lg:col-span-2">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-purple-400" /> Date to Unix
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="date-input" className="block text-sm font-medium text-slate-300 mb-1">
+                Enter Date & Time (e.g., 2023-03-15T10:00:00)
+              </label>
               <input
-                readOnly
-                value={convertedTimestampSeconds}
-                placeholder="Timestamp in seconds..."
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
+                id="date-input"
+                type="datetime-local"
+                step="1"
+                value={dateInput}
+                onChange={(e) => setDateInput(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
               />
-              <button
-                onClick={() => copyToClipboard(convertedTimestampSeconds, 'Timestamp (Seconds)')}
-                className="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors"
-                aria-label="Copy timestamp in seconds"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Unix Timestamp (Milliseconds)
-            </label>
-            <div className="relative">
-              <input
-                readOnly
-                value={convertedTimestampMilliseconds}
-                placeholder="Timestamp in milliseconds..."
-                className="w-full bg-slate-900 border border-slate-700 rounded-md px-4 py-2 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm"
-              />
-              <button
-                onClick={() => copyToClipboard(convertedTimestampMilliseconds, 'Timestamp (Milliseconds)')}
-                className="absolute top-2 right-2 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors"
-                aria-label="Copy timestamp in milliseconds"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={convertDateToUnix}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            >
+              Convert Date to Unix
+            </button>
+            {convertedUnix && (
+              <div className="space-y-2 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Unix Timestamp (Epoch)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={convertedUnix}
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-200 text-sm font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(convertedUnix, 'Converted Unix Timestamp')}
+                      className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md transition-colors duration-200"
+                      title="Copy Unix Timestamp"
+                    >
+                      <Copy className="w-4 h-4 text-slate-300" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
