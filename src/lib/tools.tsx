@@ -1,6 +1,4 @@
-import {
-  Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search
-} from 'lucide-react';
+import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from 'lucide-react';
 
 export interface Tool {
   slug: string;
@@ -35,9 +33,16 @@ export const tools: Tool[] = [
   {
     slug: "base64-encoder-decoder",
     name: "Base64 Encoder/Decoder",
-    category: "Converters",
+    category: "Encoders / Decoders",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
+  },
+  {
+    slug: "jwt-decoder",
+    name: "JWT Decoder",
+    category: "Security",
+    path: "/tools/jwt-decoder",
+    description: "Decode JWT (JSON Web Token) to inspect its header, payload, and verify signature.",
   },
   {
     slug: "color-picker",
@@ -47,73 +52,78 @@ export const tools: Tool[] = [
     description: "Select colors and convert between HEX, RGB, HSL formats.",
   },
   {
-    slug: "regex-tester-generator",
-    name: "Regex Tester & Generator",
-    category: "Development",
-    path: "/tools/regex-tester-generator",
-    description: "Test and generate regular expressions with ease.",
+    slug: "css-shadow-generator",
+    name: "CSS Shadow Generator",
+    category: "Design",
+    path: "/tools/css-shadow-generator",
+    description: "Generate beautiful CSS box and text shadows.",
+  },
+  {
+    slug: "css-gradient-generator",
+    name: "CSS Gradient Generator",
+    category: "Design",
+    path: "/tools/css-gradient-generator",
+    description: "Create stunning CSS linear and radial gradients.",
   },
   {
     slug: "unix-timestamp-epoch-converter",
     name: "Unix Timestamp & Epoch Converter",
-    category: "Converters",
+    category: "Date & Time",
     path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice-versa.",
+    description: "Convert between Unix timestamps (Epoch) and human-readable dates and times.",
   },
-  // Placeholder for future tools
-  // {
-  //   slug: "jwt-decoder",
-  //   name: "JWT Decoder",
-  //   category: "Security",
-  //   path: "/tools/jwt-decoder",
-  //   description: "Decode JWT tokens to inspect header, payload, and verify signature.",
-  // },
-  // {
-  //   slug: "css-shadow-gradient-generator",
-  //   name: "CSS Shadow & Gradient Generator",
-  //   category: "Design",
-  //   path: "/tools/css-shadow-gradient-generator",
-  //   description: "Generate complex CSS box shadows and gradient backgrounds.",
-  // },
-  // {
-  //   slug: "uuid-password-generator",
-  //   name: "UUID & Password Generator",
-  //   category: "Generators",
-  //   path: "/tools/uuid-password-generator",
-  //   description: "Generate strong passwords and UUIDs (v1, v4, v5).",
-  // },
-  // {
-  //   slug: "case-converter",
-  //   name: "Case Converter",
-  //   category: "Text",
-  //   path: "/tools/case-converter",
-  //   description: "Convert text between different cases (e.g., camelCase, snake_case).",
-  // },
-  // {
-  //   slug: "lorem-ipsum-generator",
-  //   name: "Lorem Ipsum Generator",
-  //   category: "Text",
-  //   path: "/tools/lorem-ipsum-generator",
-  //   description: "Generate placeholder text for your designs and prototypes.",
-  // },
+  {
+    slug: "uuid-generator",
+    name: "UUID Generator",
+    category: "Generators",
+    path: "/tools/uuid-generator",
+    description: "Generate universally unique identifiers (UUIDs/GUIDs).",
+  },
+  {
+    slug: "password-generator",
+    name: "Password Generator",
+    category: "Generators",
+    path: "/tools/password-generator",
+    description: "Create strong, random passwords with customizable options.",
+  },
+  {
+    slug: "case-converter",
+    name: "Case Converter",
+    category: "Text",
+    path: "/tools/case-converter",
+    description: "Convert text between various case formats (e.g., camelCase, snake_case).",
+  },
+  {
+    slug: "lorem-ipsum-generator",
+    name: "Lorem Ipsum Generator",
+    category: "Text",
+    path: "/tools/lorem-ipsum-generator",
+    description: "Generate placeholder text for your designs and prototypes.",
+  },
+  {
+    slug: "regex-tester-generator",
+    name: "Regex Tester & Generator",
+    category: "Text",
+    path: "/tools/regex-tester-generator",
+    description: "Test and generate regular expressions with ease.",
+  },
 ];
 
-// Helper functions (MUST be preserved)
+// Helper functions (must be preserved)
 export function getToolBySlug(slug: string): Tool | undefined {
-  return tools.find(tool => tool.slug === slug);
+  return tools.find((tool) => tool.slug === slug);
 }
 
 export function getToolByPath(path: string): Tool | undefined {
-  return tools.find(tool => tool.path === path);
+  return tools.find((tool) => tool.path === path);
 }
 
 export function toolsByCategory(): Record<string, Tool[]> {
-  const categories: Record<string, Tool[]> = {};
-  tools.forEach(tool => {
-    if (!categories[tool.category]) {
-      categories[tool.category] = [];
+  return tools.reduce((acc, tool) => {
+    if (!acc[tool.category]) {
+      acc[tool.category] = [];
     }
-    categories[tool.category].push(tool);
-  });
-  return categories;
+    acc[tool.category].push(tool);
+    return acc;
+  }, {} as Record<string, Tool[]>);
 }
