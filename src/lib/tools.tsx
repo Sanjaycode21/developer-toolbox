@@ -1,23 +1,4 @@
-import {
-  Code,
-  Star,
-  History,
-  Palette,
-  Layers,
-  Settings,
-  Terminal,
-  Hash,
-  Shield,
-  FileText,
-  Binary,
-  Calendar,
-  Sparkles,
-  Clock,
-  Key, // Added Key icon for JWT Decoder
-  Search,
-  Type, // For Case Converter
-  AlignLeft, // For Lorem Ipsum
-} from "lucide-react";
+import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from "lucide-react";
 
 export interface Tool {
   slug: string;
@@ -28,115 +9,96 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
-  // Core Tools
   {
     slug: "favorites",
     name: "Favorites",
-    category: "Core",
+    category: "General",
     path: "/tools/favorites",
-    description: "Your most loved and frequently used tools.",
+    description: "Your most loved tools, all in one place.",
   },
   {
     slug: "history",
     name: "History",
-    category: "Core",
+    category: "General",
     path: "/tools/history",
     description: "Recently used tools for quick access.",
   },
-  // Converters & Encoders
+  {
+    slug: "json-formatter",
+    name: "JSON Formatter",
+    category: "Formatters",
+    path: "/tools/json-formatter",
+    description: "Beautify or minify JSON data.",
+  },
   {
     slug: "base64-encoder-decoder",
     name: "Base64 Encoder / Decoder",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
   },
   {
-    slug: "unix-timestamp-epoch-converter",
-    name: "Unix Timestamp & Epoch Converter",
-    category: "Converters & Encoders",
-    path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice versa.",
-  },
-  {
     slug: "jwt-decoder",
     name: "JWT Decoder",
-    category: "Converters & Encoders",
+    category: "Decoders",
     path: "/tools/jwt-decoder",
-    description: "Decode JSON Web Tokens (JWT) to inspect header and payload.",
+    description: "Decode JSON Web Tokens (JWT) to inspect their contents.",
   },
-  // Generators
-  {
-    slug: "uuid-password-generator",
-    name: "UUID & Password Generator",
-    category: "Generators",
-    path: "/tools/uuid-password-generator",
-    description: "Generate UUIDs and strong, random passwords.",
-  },
-  {
-    slug: "css-shadow-gradient-generator",
-    name: "CSS Shadow & Gradient Generator",
-    category: "Generators",
-    path: "/tools/css-shadow-gradient-generator",
-    description: "Generate beautiful CSS shadows and gradients.",
-  },
-  {
-    slug: "lorem-ipsum-generator",
-    name: "Lorem Ipsum Generator",
-    category: "Generators",
-    path: "/tools/lorem-ipsum-generator",
-    description: "Generate placeholder text for your designs and prototypes.",
-  },
-  // Text
-  {
-    slug: "json-formatter",
-    name: "JSON Formatter",
-    category: "Text",
-    path: "/tools/json-formatter",
-    description: "Beautify and validate JSON data.",
-  },
-  {
-    slug: "case-converter",
-    name: "Case Converter",
-    category: "Text",
-    path: "/tools/case-converter",
-    description: "Convert text between different casing styles (e.g., camelCase, snake_case).",
-  },
-  // Utilities
   {
     slug: "color-picker",
     name: "Color Picker",
-    category: "Utilities",
+    category: "Design",
     path: "/tools/color-picker",
-    description: "Select and convert colors between different formats.",
+    description: "Select colors and get their HEX, RGB, HSL values.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
-    category: "Utilities",
+    category: "Text",
     path: "/tools/regex-tester-generator",
     description: "Test and generate regular expressions.",
+  },
+  {
+    slug: "unix-timestamp-epoch-converter",
+    name: "Unix Timestamp & Epoch Converter",
+    category: "Time",
+    path: "/tools/unix-timestamp-epoch-converter",
+    description: "Convert Unix timestamps to human-readable dates and vice-versa.",
   },
 ];
 
 export function toolsByCategory(): Record<string, Tool[]> {
-  return tools.reduce((acc, tool) => {
-    if (!acc[tool.category]) {
-      acc[tool.category] = [];
+  const categories: Record<string, Tool[]> = {};
+  tools.forEach((tool) => {
+    if (!categories[tool.category]) {
+      categories[tool.category] = [];
     }
-    acc[tool.category].push(tool);
-    return acc;
-  }, {} as Record<string, Tool[]>);
+    categories[tool.category].push(tool);
+  });
+  return categories;
 }
 
 export function getToolBySlug(slug: string): Tool | undefined {
   return tools.find((tool) => tool.slug === slug);
 }
 
-export const categoryIcons: Record<string, React.ElementType> = {
-  Core: Star,
-  "Converters & Encoders": Binary,
-  Generators: Sparkles,
-  Text: FileText,
-  Utilities: Settings,
-};
+export function getCategoryIcon(category: string): React.ElementType | null {
+  switch (category) {
+    case "General":
+      return Star; // Using Star for general, could be Settings or Layers
+    case "Formatters":
+      return Code;
+    case "Converters":
+      return Binary;
+    case "Decoders":
+      return Key;
+    case "Design":
+      return Palette;
+    case "Text":
+      return FileText;
+    case "Time":
+      return Clock;
+    default:
+      return Layers; // Default icon for uncategorized or new categories
+  }
+}
