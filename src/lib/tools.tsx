@@ -1,4 +1,23 @@
-import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from 'lucide-react';
+import {
+  Code,
+  Star,
+  History,
+  Palette,
+  Layers,
+  Settings,
+  Terminal,
+  Hash,
+  Shield,
+  FileText,
+  Binary,
+  Calendar,
+  Sparkles,
+  Clock,
+  Key, // Added Key icon for JWT Decoder
+  Search,
+  Type, // For Case Converter
+  AlignLeft, // For Lorem Ipsum
+} from "lucide-react";
 
 export interface Tool {
   slug: string;
@@ -9,114 +28,96 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
+  // Core Tools
   {
     slug: "favorites",
     name: "Favorites",
-    category: "General",
+    category: "Core",
     path: "/tools/favorites",
     description: "Your most loved and frequently used tools.",
   },
   {
     slug: "history",
     name: "History",
-    category: "General",
+    category: "Core",
     path: "/tools/history",
-    description: "Recently used tools and past conversions.",
+    description: "Recently used tools for quick access.",
   },
-  {
-    slug: "json-formatter",
-    name: "JSON Formatter",
-    category: "Formatters",
-    path: "/tools/json-formatter",
-    description: "Beautify or minify JSON data for better readability.",
-  },
+  // Converters & Encoders
   {
     slug: "base64-encoder-decoder",
-    name: "Base64 Encoder/Decoder",
-    category: "Encoders / Decoders",
+    name: "Base64 Encoder / Decoder",
+    category: "Converters & Encoders",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
   },
   {
-    slug: "jwt-decoder",
-    name: "JWT Decoder",
-    category: "Security",
-    path: "/tools/jwt-decoder",
-    description: "Decode JWT (JSON Web Token) to inspect its header, payload, and verify signature.",
-  },
-  {
-    slug: "color-picker",
-    name: "Color Picker",
-    category: "Design",
-    path: "/tools/color-picker",
-    description: "Select colors and convert between HEX, RGB, HSL formats.",
-  },
-  {
-    slug: "css-shadow-generator",
-    name: "CSS Shadow Generator",
-    category: "Design",
-    path: "/tools/css-shadow-generator",
-    description: "Generate beautiful CSS box and text shadows.",
-  },
-  {
-    slug: "css-gradient-generator",
-    name: "CSS Gradient Generator",
-    category: "Design",
-    path: "/tools/css-gradient-generator",
-    description: "Create stunning CSS linear and radial gradients.",
-  },
-  {
     slug: "unix-timestamp-epoch-converter",
     name: "Unix Timestamp & Epoch Converter",
-    category: "Date & Time",
+    category: "Converters & Encoders",
     path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert between Unix timestamps (Epoch) and human-readable dates and times.",
+    description: "Convert Unix timestamps to human-readable dates and vice versa.",
   },
   {
-    slug: "uuid-generator",
-    name: "UUID Generator",
+    slug: "jwt-decoder",
+    name: "JWT Decoder",
+    category: "Converters & Encoders",
+    path: "/tools/jwt-decoder",
+    description: "Decode JSON Web Tokens (JWT) to inspect header and payload.",
+  },
+  // Generators
+  {
+    slug: "uuid-password-generator",
+    name: "UUID & Password Generator",
     category: "Generators",
-    path: "/tools/uuid-generator",
-    description: "Generate universally unique identifiers (UUIDs/GUIDs).",
+    path: "/tools/uuid-password-generator",
+    description: "Generate UUIDs and strong, random passwords.",
   },
   {
-    slug: "password-generator",
-    name: "Password Generator",
+    slug: "css-shadow-gradient-generator",
+    name: "CSS Shadow & Gradient Generator",
     category: "Generators",
-    path: "/tools/password-generator",
-    description: "Create strong, random passwords with customizable options.",
+    path: "/tools/css-shadow-gradient-generator",
+    description: "Generate beautiful CSS shadows and gradients.",
+  },
+  {
+    slug: "lorem-ipsum-generator",
+    name: "Lorem Ipsum Generator",
+    category: "Generators",
+    path: "/tools/lorem-ipsum-generator",
+    description: "Generate placeholder text for your designs and prototypes.",
+  },
+  // Text
+  {
+    slug: "json-formatter",
+    name: "JSON Formatter",
+    category: "Text",
+    path: "/tools/json-formatter",
+    description: "Beautify and validate JSON data.",
   },
   {
     slug: "case-converter",
     name: "Case Converter",
     category: "Text",
     path: "/tools/case-converter",
-    description: "Convert text between various case formats (e.g., camelCase, snake_case).",
+    description: "Convert text between different casing styles (e.g., camelCase, snake_case).",
   },
+  // Utilities
   {
-    slug: "lorem-ipsum-generator",
-    name: "Lorem Ipsum Generator",
-    category: "Text",
-    path: "/tools/lorem-ipsum-generator",
-    description: "Generate placeholder text for your designs and prototypes.",
+    slug: "color-picker",
+    name: "Color Picker",
+    category: "Utilities",
+    path: "/tools/color-picker",
+    description: "Select and convert colors between different formats.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
-    category: "Text",
+    category: "Utilities",
     path: "/tools/regex-tester-generator",
-    description: "Test and generate regular expressions with ease.",
+    description: "Test and generate regular expressions.",
   },
 ];
-
-// Helper functions (must be preserved)
-export function getToolBySlug(slug: string): Tool | undefined {
-  return tools.find((tool) => tool.slug === slug);
-}
-
-export function getToolByPath(path: string): Tool | undefined {
-  return tools.find((tool) => tool.path === path);
-}
 
 export function toolsByCategory(): Record<string, Tool[]> {
   return tools.reduce((acc, tool) => {
@@ -127,3 +128,15 @@ export function toolsByCategory(): Record<string, Tool[]> {
     return acc;
   }, {} as Record<string, Tool[]>);
 }
+
+export function getToolBySlug(slug: string): Tool | undefined {
+  return tools.find((tool) => tool.slug === slug);
+}
+
+export const categoryIcons: Record<string, React.ElementType> = {
+  Core: Star,
+  "Converters & Encoders": Binary,
+  Generators: Sparkles,
+  Text: FileText,
+  Utilities: Settings,
+};

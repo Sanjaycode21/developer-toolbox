@@ -203,7 +203,7 @@ CRITICAL RULES:
      description?: string; // Optional subtitle
    }
    Do NOT use "title" prop on ToolPageWrapper!
-5. Zustand Store API: The store `useToolStore` exported from `@/store/useToolStore` has these exact properties and methods:
+5. Zustand Store API: The store 'useToolStore' exported from '@/store/useToolStore' has these exact properties and methods:
    * favorites: string[] (slugs of favorites)
    * history: { slug: string, timestamp: number }[]
    * addFavorite(slug: string): void
