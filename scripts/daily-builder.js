@@ -102,10 +102,22 @@ function generateDynamicTask() {
     "Zustand State Favorites and History Dashboard"
   ];
   
-  // Find one that is not implemented yet
+  // Find one that is not implemented yet using keyword matching (with Windows path normalization)
   let targetIdea = ideas.find(idea => {
-    const slug = idea.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    return !files.some(f => f.includes(slug));
+    const words = idea.toLowerCase()
+      .replace(/[^a-z0-9\s]+/g, '')
+      .split(/\s+/)
+      .filter(w => w !== 'and' && w !== 'or' && w !== 'tool' && w !== 'tools');
+      
+    const alreadyImplemented = files.some(file => {
+      const cleanFile = file.toLowerCase().replace(/\\/g, '/');
+      if (cleanFile.startsWith('src/app/tools/') && cleanFile.endsWith('page.tsx')) {
+        return words.every(word => cleanFile.includes(word));
+      }
+      return false;
+    });
+    
+    return !alreadyImplemented;
   });
   
   if (!targetIdea) {
