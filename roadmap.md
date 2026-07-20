@@ -31,3 +31,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 26: Implement XML Formatter tool
 - [x] Day 27: Implement YAML Formatter tool
 - [x] Day 28: Implement CSV Viewer & Converter
+- [x] Day 29: Implement Markdown Live Preview
