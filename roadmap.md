@@ -34,3 +34,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 29: Implement Markdown Live Preview
 - [x] Day 30: Implement HTML Formatter
 - [x] Day 31: Implement SQL Formatter
+- [x] Day 32: Implement Base64 Image Encoder/Decoder
