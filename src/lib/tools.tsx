@@ -1,7 +1,22 @@
 import {
-  Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search, Image as ImageIcon,
+  Code,
+  Star,
+  History,
+  Palette,
+  Layers,
+  Settings,
+  Terminal,
+  Hash,
+  Shield,
+  FileText,
+  Binary,
+  Calendar,
+  Sparkles,
+  Clock,
+  Key,
+  Search,
+  Image as ImageIcon, // Renamed to avoid conflict
 } from "lucide-react";
-import React from "react";
 
 export interface Tool {
   slug: string;
@@ -25,83 +40,80 @@ export const tools: Tool[] = [
     name: "History",
     category: "Navigation",
     path: "/tools/history",
-    description: "Recently used tools.",
+    description: "Recently used tools for quick access.",
   },
-
-  // Converters & Encoders
+  // Converters & Encoders/Decoders
   {
     slug: "base64-encoder-decoder",
     name: "Base64 Encoder / Decoder",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
   },
   {
     slug: "base64-image-encoder-decoder",
     name: "Base64 Image Encoder / Decoder",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/base64-image-encoder-decoder",
     description: "Encode images to Base64 and decode Base64 back to images.",
   },
   {
     slug: "unix-timestamp-epoch-converter",
     name: "Unix Timestamp & Epoch Converter",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/unix-timestamp-epoch-converter",
     description: "Convert Unix timestamps to human-readable dates and vice versa.",
   },
   {
     slug: "case-converter",
     name: "Case Converter",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/case-converter",
-    description: "Convert text to different cases: lowercase, uppercase, camelCase, etc.",
+    description: "Convert text between different cases (e.g., camelCase, snake_case).",
   },
-  {
-    slug: "csv-viewer-converter",
-    name: "CSV Viewer / Converter",
-    category: "Converters & Encoders",
-    path: "/tools/csv-viewer-converter",
-    description: "View and convert CSV data to other formats like JSON or XML.",
-  },
-
   // Formatters
   {
     slug: "json-formatter",
     name: "JSON Formatter",
     category: "Formatters",
     path: "/tools/json-formatter",
-    description: "Beautify or minify JSON data.",
+    description: "Beautify and validate JSON data.",
   },
   {
     slug: "xml-formatter",
     name: "XML Formatter",
     category: "Formatters",
     path: "/tools/xml-formatter",
-    description: "Beautify or minify XML data.",
+    description: "Beautify and validate XML data.",
   },
   {
     slug: "html-formatter",
     name: "HTML Formatter",
     category: "Formatters",
     path: "/tools/html-formatter",
-    description: "Beautify or minify HTML code.",
+    description: "Beautify and format HTML code.",
   },
   {
     slug: "sql-formatter",
     name: "SQL Formatter",
     category: "Formatters",
     path: "/tools/sql-formatter",
-    description: "Format SQL queries for better readability.",
+    description: "Beautify and format SQL queries.",
   },
   {
     slug: "yaml-formatter",
     name: "YAML Formatter",
     category: "Formatters",
     path: "/tools/yaml-formatter",
-    description: "Beautify or minify YAML data.",
+    description: "Beautify and validate YAML data.",
   },
-
+  {
+    slug: "csv-viewer-converter",
+    name: "CSV Viewer / Converter",
+    category: "Formatters",
+    path: "/tools/csv-viewer-converter",
+    description: "View and convert CSV data to other formats.",
+  },
   // Generators
   {
     slug: "uuid-generator",
@@ -115,7 +127,7 @@ export const tools: Tool[] = [
     name: "Password Generator",
     category: "Generators",
     path: "/tools/password-generator",
-    description: "Create strong, random passwords.",
+    description: "Generate strong, secure passwords.",
   },
   {
     slug: "lorem-ipsum-generator",
@@ -138,46 +150,86 @@ export const tools: Tool[] = [
     path: "/tools/css-gradient-generator",
     description: "Create beautiful CSS linear and radial gradients.",
   },
-
-  // Web Utilities
+  // Web & Security
   {
     slug: "jwt-decoder",
     name: "JWT Decoder",
-    category: "Web Utilities",
+    category: "Web & Security",
     path: "/tools/jwt-decoder",
-    description: "Decode JSON Web Tokens to inspect header, payload, and signature.",
-  },
-  {
-    slug: "url-encoder-decoder",
-    name: "URL Encoder / Decoder",
-    category: "Web Utilities",
-    path: "/tools/url-encoder-decoder",
-    description: "Encode and decode URL components.",
-  },
-  {
-    slug: "color-picker",
-    name: "Color Picker",
-    category: "Web Utilities",
-    path: "/tools/color-picker",
-    description: "Pick colors and convert between HEX, RGB, HSL formats.",
-  },
-
-  // Text & Data
-  {
-    slug: "markdown-live-preview",
-    name: "Markdown Live Preview",
-    category: "Text & Data",
-    path: "/tools/markdown-live-preview",
-    description: "Write Markdown and see the live preview.",
+    description: "Decode and inspect JSON Web Tokens.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
-    category: "Text & Data",
+    category: "Web & Security",
     path: "/tools/regex-tester-generator",
-    description: "Test and generate regular expressions.",
+    description: "Test and build regular expressions.",
+  },
+  // Utilities
+  {
+    slug: "markdown-live-preview",
+    name: "Markdown Live Preview",
+    category: "Utilities",
+    path: "/tools/markdown-live-preview",
+    description: "Write and preview Markdown in real-time.",
+  },
+  {
+    slug: "color-picker",
+    name: "Color Picker",
+    category: "Utilities",
+    path: "/tools/color-picker",
+    description: "Select colors and get their values in various formats.",
   },
 ];
+
+export function getToolIcon(slug: string) {
+  switch (slug) {
+    case "favorites":
+      return Star;
+    case "history":
+      return History;
+    case "base64-encoder-decoder":
+      return Binary;
+    case "base64-image-encoder-decoder":
+      return ImageIcon;
+    case "unix-timestamp-epoch-converter":
+      return Clock;
+    case "case-converter":
+      return FileText;
+    case "json-formatter":
+      return Layers;
+    case "xml-formatter":
+      return Code;
+    case "html-formatter":
+      return Code;
+    case "sql-formatter":
+      return Terminal;
+    case "yaml-formatter":
+      return Layers;
+    case "csv-viewer-converter":
+      return FileText;
+    case "uuid-generator":
+      return Hash;
+    case "password-generator":
+      return Key;
+    case "lorem-ipsum-generator":
+      return Sparkles;
+    case "css-shadow-generator":
+      return Layers; // Using Layers for now, no specific shadow icon
+    case "css-gradient-generator":
+      return Palette;
+    case "jwt-decoder":
+      return Shield;
+    case "regex-tester-generator":
+      return Search;
+    case "markdown-live-preview":
+      return FileText;
+    case "color-picker":
+      return Palette;
+    default:
+      return Settings; // Default icon
+  }
+}
 
 export function toolsByCategory(): Record<string, Tool[]> {
   const categories: Record<string, Tool[]> = {};
@@ -192,23 +244,4 @@ export function toolsByCategory(): Record<string, Tool[]> {
 
 export function getToolBySlug(slug: string): Tool | undefined {
   return tools.find((tool) => tool.slug === slug);
-}
-
-export function getCategoryIcon(category: string): React.ElementType | null {
-  switch (category) {
-    case "Navigation":
-      return Star;
-    case "Converters & Encoders":
-      return Binary;
-    case "Formatters":
-      return Code;
-    case "Generators":
-      return Sparkles;
-    case "Web Utilities":
-      return Layers;
-    case "Text & Data":
-      return FileText;
-    default:
-      return Settings;
-  }
 }

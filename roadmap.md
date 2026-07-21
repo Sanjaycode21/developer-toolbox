@@ -36,3 +36,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 31: Implement SQL Formatter
 - [x] Day 32: Implement Base64 Image Encoder/Decoder
 - [x] Day 33: Implement Base64 Image Encoder/Decoder
+- [x] Day 34: Implement Base64 Image Encoder/Decoder
