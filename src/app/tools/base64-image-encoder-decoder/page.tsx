@@ -2,326 +2,335 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
-import { useToolStore } from '@/store/useToolStore';
+import { Upload, Copy, Download, Image as ImageIcon, XCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Copy, Download, Upload, X, Image as ImageIcon } from 'lucide-react';
-import NextImage from 'next/image'; // Renamed to avoid conflict with HTML ImageElement
+import { useToolStore } from '@/store/useToolStore';
 
-const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+const MAX_FILE_SIZE_MB = 5; // 5 MB
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-export default function Base64ImageEncoderDecoderPage() {
-  const toolSlug = "base64-image-encoder-decoder";
-  const addToHistory = useToolStore((state) => state.addToHistory);
+const Base64ImageEncoderDecoderPage = () => {
+  const { addToHistory } = useToolStore();
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [encodedBase64, setEncodedBase64] = useState<string>('');
-  const [base64Input, setBase64Input] = useState<string>('');
-  const [decodedImageSrc, setDecodedImageSrc] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [decodedBase64Input, setDecodedBase64Input] = useState<string>('');
+  const [decodedImageUrl, setDecodedImageUrl] = useState<string | null>(null);
+  const [encodeLoading, setEncodeLoading] = useState(false);
+  const [decodeLoading, setDecodeLoading] = useState(false);
+  const [encodeError, setEncodeError] = useState<string | null>(null);
+  const [decodeError, setDecodeError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    addToHistory(toolSlug);
-  }, [addToHistory, toolSlug]);
+    addToHistory('base64-image-encoder-decoder');
+  }, [addToHistory]);
 
-  const encodeFileToBase64 = useCallback((file: File) => {
-    setError(null);
-    if (!file) {
-      setEncodedBase64('');
-      return;
-    }
-
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setError('Invalid file type. Please upload an image (PNG, JPEG, GIF, WebP, SVG).');
-      setEncodedBase64('');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setEncodedBase64(result);
-    };
-    reader.onerror = () => {
-      setError('Failed to read file.');
-      setEncodedBase64('');
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const decodeBase64ToImage = useCallback((base64: string) => {
-    setError(null);
-    setDecodedImageSrc('');
-    if (!base64.trim()) {
-      return;
-    }
-
-    try {
-      // Basic validation for data URL format
-      if (!base64.startsWith('data:')) {
-        // Try to prepend common image data URL prefix if missing
-        const possiblePrefixes = [
-          'data:image/png;base64,',
-          'data:image/jpeg;base64,',
-          'data:image/gif;base64,',
-          'data:image/webp;base64,',
-          'data:image/svg+xml;base64,',
-        ];
-        let foundPrefix = false;
-        for (const prefix of possiblePrefixes) {
-          if (base64.startsWith(prefix)) {
-            foundPrefix = true;
-            break;
-          }
-        }
-        if (!foundPrefix) {
-          // If no prefix, assume it's just the base64 string and try to decode as PNG
-          // This is a heuristic, might not always be correct
-          base64 = 'data:image/png;base64,' + base64;
-        }
-      }
-
-      // Further validation: check if it's a valid base64 string after the prefix
-      const parts = base64.split(',');
-      if (parts.length < 2) {
-        setError('Invalid Base64 string format. Missing data URL prefix.');
-        return;
-      }
-      const base64Data = parts[1];
-      // Attempt to decode to check validity
-      atob(base64Data); // This will throw if not valid base64
-
-      setDecodedImageSrc(base64);
-    } catch (e) {
-      setError('Invalid Base64 string. Could not decode image.');
-      setDecodedImageSrc('');
-    }
-  }, []);
-
-  useEffect(() => {
-    if (imageFile) {
-      encodeFileToBase64(imageFile);
-    } else {
-      setEncodedBase64('');
-    }
-  }, [imageFile, encodeFileToBase64]);
-
-  useEffect(() => {
-    decodeBase64ToImage(base64Input);
-  }, [base64Input, decodeBase64ToImage]);
-
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>) => {
-    setError(null);
-    let files: FileList | null = null;
-
-    if ('dataTransfer' in event) { // Drag event
-      files = event.dataTransfer.files;
-    } else if ('files' in event.target) { // Input change event
-      files = event.target.files;
-    }
-
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        setImageFile(file);
-      } else {
-        setError('Invalid file type. Please upload an image (PNG, JPEG, GIF, WebP, SVG).');
-        setImageFile(null);
-        setEncodedBase64('');
-      }
-    } else {
+  const processFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setEncodeError('Please upload an image file.');
       setImageFile(null);
       setEncodedBase64('');
+      return false;
     }
-  }, [encodeFileToBase64]);
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setEncodeError(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit.`);
+      setImageFile(null);
+      setEncodedBase64('');
+      return false;
+    }
 
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsDragging(true);
+    setImageFile(file);
+    setEncodeError(null);
+    setEncodeLoading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setEncodedBase64(base64String);
+      setEncodeLoading(false);
+      toast.success('Image encoded to Base64!');
+    };
+    reader.onerror = () => {
+      setEncodeError('Failed to read file.');
+      setEncodeLoading(false);
+      toast.error('Failed to read file.');
+    };
+    reader.readAsDataURL(file);
+    return true;
   }, []);
 
-  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsDragging(false);
-  }, []);
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      processFile(file);
+    } else {
+      handleClearEncode();
+    }
+  }, [processFile]);
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    setIsDragging(false);
-    handleFileChange(event);
-  }, [handleFileChange]);
-
-  const handleCopy = useCallback((text: string, message: string) => {
-    if (text) {
-      navigator.clipboard.writeText(text);
-      toast.success(message);
-    } else {
-      toast.error('Nothing to copy.');
+    event.stopPropagation();
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
     }
+  }, [processFile]);
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
   }, []);
 
-  const handleDownloadImage = useCallback(() => {
-    if (decodedImageSrc) {
+  const handleCopy = useCallback(() => {
+    if (encodedBase64) {
+      navigator.clipboard.writeText(encodedBase64);
+      toast.success('Base64 string copied to clipboard!');
+    }
+  }, [encodedBase64]);
+
+  const handleDecodeBase64 = useCallback(() => {
+    setDecodeError(null);
+    setDecodedImageUrl(null);
+    if (!decodedBase64Input.trim()) {
+      setDecodeError('Please enter a Base64 string to decode.');
+      return;
+    }
+
+    setDecodeLoading(true);
+    try {
+      let base64Data = decodedBase64Input.trim();
+
+      if (!base64Data.startsWith('data:')) {
+        // Assume it's raw base64, try to prepend common image type
+        base64Data = `data:image/png;base64,${base64Data}`;
+      } else if (!base64Data.startsWith('data:image/')) {
+        // It's a data URL but not an image, e.g., data:text/plain
+        setDecodeError('The provided Base64 string is not an image data URL.');
+        setDecodedImageUrl(null);
+        setDecodeLoading(false);
+        toast.error('Not an image data URL.');
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        setDecodedImageUrl(base64Data);
+        setDecodeLoading(false);
+        toast.success('Base64 string decoded to image!');
+      };
+      img.onerror = () => {
+        setDecodeError('Invalid Base64 image data or unsupported format.');
+        setDecodedImageUrl(null);
+        setDecodeLoading(false);
+        toast.error('Invalid Base64 image data.');
+      };
+      img.src = base64Data;
+
+    } catch (error) {
+      setDecodeError('Error decoding Base64 string.');
+      setDecodedImageUrl(null);
+      setDecodeLoading(false);
+      toast.error('Error decoding Base64 string.');
+    }
+  }, [decodedBase64Input]);
+
+  const handleDownload = useCallback(() => {
+    if (decodedImageUrl) {
       const link = document.createElement('a');
-      link.href = decodedImageSrc;
-      link.download = `decoded_image_${Date.now()}.${decodedImageSrc.split(';')[0].split('/')[1]}`;
+      link.href = decodedImageUrl;
+      // Try to infer file type from data URL, default to png
+      const mimeTypeMatch = decodedImageUrl.match(/^data:(image\/[^;]+);base64,/);
+      const extension = mimeTypeMatch ? mimeTypeMatch[1].split('/')[1] : 'png';
+      link.download = `decoded_image_${Date.now()}.${extension}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success('Image downloaded successfully!');
-    } else {
-      toast.error('No image to download.');
+      toast.success('Image downloaded!');
     }
-  }, [decodedImageSrc]);
+  }, [decodedImageUrl]);
 
   const handleClearEncode = useCallback(() => {
     setImageFile(null);
     setEncodedBase64('');
-    setError(null);
+    setEncodeError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, []);
 
   const handleClearDecode = useCallback(() => {
-    setBase64Input('');
-    setDecodedImageSrc('');
-    setError(null);
+    setDecodedBase64Input('');
+    setDecodedImageUrl(null);
+    setDecodeError(null);
   }, []);
 
   return (
     <ToolPageWrapper
-      toolSlug={toolSlug}
+      toolSlug="base64-image-encoder-decoder"
       toolName="Base64 Image Encoder/Decoder"
-      description="Encode images to Base64 strings and decode Base64 strings back to images."
+      description="Encode and decode images to/from Base64 strings. Supports common image formats."
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Encode Image to Base64 */}
+        {/* Encode Section */}
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold text-slate-200">Encode Image to Base64</h2>
           <div
-            className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors
-              ${isDragging ? 'border-indigo-500 bg-indigo-900/20' : 'border-slate-700 hover:border-slate-600 bg-slate-800/30'}
-              cursor-pointer`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            className="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-slate-700 rounded-lg cursor-pointer bg-slate-800 hover:bg-slate-700/50 transition-colors"
             onDrop={handleDrop}
+            onDragOver={handleDragOver}
             onClick={() => fileInputRef.current?.click()}
           >
             <input
               type="file"
               ref={fileInputRef}
-              accept={ALLOWED_IMAGE_TYPES.join(',')}
+              accept="image/*"
               onChange={handleFileChange}
               className="hidden"
             />
-            <Upload className="w-10 h-10 text-slate-400 mb-3" />
-            <p className="text-slate-300 text-sm font-medium">
-              {isDragging ? 'Drop your image here' : 'Drag & drop an image or click to upload'}
-            </p>
-            <p className="text-slate-500 text-xs mt-1">
-              PNG, JPEG, GIF, WebP, SVG (Max 5MB recommended for performance)
-            </p>
-            {imageFile && (
-              <p className="text-indigo-400 text-sm mt-2">Selected: {imageFile.name}</p>
+            {imageFile ? (
+              <div className="flex flex-col items-center text-center text-slate-300 px-4">
+                <ImageIcon className="w-8 h-8 text-indigo-400 mb-2" />
+                <p className="text-sm font-medium truncate w-full">{imageFile.name}</p>
+                <p className="text-xs text-slate-400">({(imageFile.size / 1024).toFixed(2)} KB)</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-center text-slate-400 px-4">
+                <Upload className="w-8 h-8 mb-2" />
+                <p className="text-sm font-medium">Drag & drop an image here, or click to select</p>
+                <p className="text-xs text-slate-500">Max file size: {MAX_FILE_SIZE_MB}MB</p>
+              </div>
+            )}
+            {encodeLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 rounded-lg">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              </div>
             )}
           </div>
+          {encodeError && (
+            <div className="flex items-center gap-2 text-red-400 text-sm">
+              <XCircle className="w-4 h-4" />
+              <span>{encodeError}</span>
+            </div>
+          )}
+
+          {encodedBase64 && (
+            <div className="flex flex-col gap-2">
+              <label htmlFor="encodedBase64" className="text-sm font-medium text-slate-300">
+                Encoded Base64 String
+              </label>
+              <div className="relative">
+                <textarea
+                  id="encodedBase64"
+                  className="w-full h-40 p-3 text-sm font-mono bg-slate-800 border border-slate-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-y text-slate-200"
+                  value={encodedBase64}
+                  readOnly
+                  placeholder="Base64 string will appear here..."
+                />
+                <button
+                  onClick={handleCopy}
+                  className="absolute top-2 right-2 p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                  title="Copy to clipboard"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-slate-400">
+                  Size: {(new TextEncoder().encode(encodedBase64).length / 1024).toFixed(2)} KB
+                </span>
+                <button
+                  onClick={handleClearEncode}
+                  className="px-3 py-1.5 text-sm font-medium text-slate-300 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors flex items-center gap-1"
+                >
+                  <Trash2 className="w-4 h-4" /> Clear
+                </button>
+              </div>
+            </div>
+          )}
 
           {imageFile && (
-            <div className="relative w-full h-48 bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
-              <NextImage
-                src={URL.createObjectURL(imageFile)}
-                alt="Selected image preview"
-                layout="fill"
-                objectFit="contain"
-                className="p-2"
-              />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-slate-300">Image Preview</label>
+              <div className="w-full max-h-64 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center p-2">
+                <img
+                  src={URL.createObjectURL(imageFile)}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
             </div>
           )}
-
-          <div className="relative">
-            <textarea
-              className="w-full min-h-[150px] bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none resize-y font-mono"
-              placeholder="Base64 encoded image will appear here..."
-              value={encodedBase64}
-              readOnly
-            />
-            <button
-              onClick={() => handleCopy(encodedBase64, 'Base64 string copied!')}
-              className="absolute top-3 right-3 p-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-              aria-label="Copy Base64 string"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
-          </div>
-          <button
-            onClick={handleClearEncode}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors text-sm font-medium"
-          >
-            <X className="w-4 h-4" /> Clear Encoder
-          </button>
         </div>
 
-        {/* Decode Base64 to Image */}
+        {/* Decode Section */}
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold text-slate-200">Decode Base64 to Image</h2>
-          <div className="relative">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="decodedBase64Input" className="text-sm font-medium text-slate-300">
+              Base64 String
+            </label>
             <textarea
-              className="w-full min-h-[200px] bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none resize-y font-mono"
-              placeholder="Paste Base64 string here..."
-              value={base64Input}
-              onChange={(e) => setBase64Input(e.target.value)}
+              id="decodedBase64Input"
+              className="w-full h-40 p-3 text-sm font-mono bg-slate-800 border border-slate-700 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-y text-slate-200"
+              value={decodedBase64Input}
+              onChange={(e) => setDecodedBase64Input(e.target.value)}
+              placeholder="Paste your Base64 image string here (e.g., data:image/png;base64,iVBORw0KGgo... or just the raw Base64 data)..."
             />
-            <button
-              onClick={() => handleCopy(base64Input, 'Input Base64 string copied!')}
-              className="absolute top-3 right-3 p-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-              aria-label="Copy input Base64 string"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
+            {decodeError && (
+              <div className="flex items-center gap-2 text-red-400 text-sm">
+                <XCircle className="w-4 h-4" />
+                <span>{decodeError}</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={handleClearDecode}
+                className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors flex items-center gap-1"
+              >
+                <Trash2 className="w-4 h-4" /> Clear
+              </button>
+              <button
+                onClick={handleDecodeBase64}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={decodeLoading || !decodedBase64Input.trim()}
+              >
+                {decodeLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Decoding...
+                  </>
+                ) : (
+                  'Decode Image'
+                )}
+              </button>
+            </div>
           </div>
 
-          {error && (
-            <div className="bg-red-900/30 border border-red-700 text-red-300 p-3 rounded-lg text-sm">
-              {error}
+          {decodedImageUrl && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-slate-300">Decoded Image Preview</label>
+              <div className="w-full max-h-64 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center p-2">
+                <img
+                  src={decodedImageUrl}
+                  alt="Decoded Preview"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <button
+                onClick={handleDownload}
+                className="mt-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download Image
+              </button>
             </div>
           )}
-
-          {decodedImageSrc ? (
-            <div className="relative w-full h-48 bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
-              <NextImage
-                src={decodedImageSrc}
-                alt="Decoded image preview"
-                layout="fill"
-                objectFit="contain"
-                className="p-2"
-              />
-            </div>
-          ) : (
-            <div className="w-full h-48 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center text-slate-500 text-sm">
-              <ImageIcon className="w-8 h-8 mr-2" /> Decoded image preview
-            </div>
-          )}
-
-          <div className="flex gap-4">
-            <button
-              onClick={handleDownloadImage}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!decodedImageSrc}
-            >
-              <Download className="w-4 h-4" /> Download Image
-            </button>
-            <button
-              onClick={handleClearDecode}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors text-sm font-medium"
-            >
-              <X className="w-4 h-4" /> Clear Decoder
-            </button>
-          </div>
         </div>
       </div>
     </ToolPageWrapper>
   );
-}
+};
+
+export default Base64ImageEncoderDecoderPage;

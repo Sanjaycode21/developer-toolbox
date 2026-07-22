@@ -402,6 +402,10 @@ ${updatedLayout}`;
 async function run() {
   for (let i = 0; i < numberOfContributions; i++) {
     console.log(`\n================ CONTRIBUTION ${i + 1} OF ${numberOfContributions} ================`);
+    if (i > 0) {
+      console.log('Waiting 15 seconds to avoid API rate limits...');
+      await new Promise(resolve => setTimeout(resolve, 15000));
+    }
     const success = await executeSingleTask();
     if (success) {
       successfulContributions++;
@@ -420,6 +424,12 @@ async function run() {
       
       console.log('Merging changes to main branch...');
       execSync('git checkout main', { stdio: 'inherit' });
+      try {
+        console.log('Syncing main branch from remote...');
+        execSync('git pull origin main --rebase', { stdio: 'inherit' });
+      } catch (pullErr) {
+        console.warn('Git pull on main failed, attempting merge directly:', pullErr.message);
+      }
       execSync(`git merge ${targetBranch} --no-edit`, { stdio: 'inherit' });
       
       console.log('Pushing main branch to GitHub (to update contribution graph)...');
