@@ -41,3 +41,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 36: Implement Base64 Image Encoder/Decoder
 - [x] Day 37: Implement Base64 Image Encoder/Decoder
 - [x] Day 38: Implement Base64 Image Encoder/Decoder
+- [x] Day 39: Implement Base64 Image Encoder/Decoder
