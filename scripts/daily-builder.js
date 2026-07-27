@@ -105,9 +105,9 @@ function generateDynamicTask() {
   // Find one that is not implemented yet using keyword matching (with Windows path normalization)
   let targetIdea = ideas.find(idea => {
     const words = idea.toLowerCase()
-      .replace(/[^a-z0-9\s]+/g, '')
+      .replace(/[^a-z0-9\s]+/g, ' ')
       .split(/\s+/)
-      .filter(w => w !== 'and' && w !== 'or' && w !== 'tool' && w !== 'tools');
+      .filter(w => w !== 'and' && w !== 'or' && w !== 'tool' && w !== 'tools' && w !== '');
       
     const alreadyImplemented = files.some(file => {
       const cleanFile = file.toLowerCase().replace(/\\/g, '/');
@@ -410,7 +410,13 @@ async function run() {
     if (success) {
       successfulContributions++;
     } else {
-      console.warn(`Contribution ${i + 1} failed. Moving to next or ending loop.`);
+      console.warn(`Contribution ${i + 1} failed. Rolling back local changes...`);
+      try {
+        execSync('git checkout -- .', { stdio: 'inherit' });
+        execSync('git clean -fd', { stdio: 'inherit' });
+      } catch (cleanErr) {
+        console.error('Clean failed:', cleanErr.message);
+      }
     }
   }
   
