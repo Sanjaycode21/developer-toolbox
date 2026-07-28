@@ -237,6 +237,7 @@ CRITICAL RULES:
    * You MUST preserve the helper functions at the bottom of src/lib/tools.tsx exactly as functions, especially "toolsByCategory(): Record<string, Tool[]>". You MUST export and define them as functions (e.g. export function toolsByCategory() { ... }).
    * Use valid Lucide icons from "lucide-react", such as: "Code", "Star", "History", "Palette", "Layers", "Settings", "Terminal", "Hash", "Shield", "FileText", "Binary", "Calendar", "Sparkles", "Clock", "Key", "Search". Do not use non-existent icons like "Shadow".
 8. Output ONLY the file content blocks. Do not include any other conversational text or surrounding markdown formatting outside the separators.
+9. Third-party Libraries: 'crypto-js' is pre-installed. For tools requiring hashing, encryption/decryption, or cryptographic algorithms (like MD5, SHA-1, SHA-256, SHA-512, AES, etc.), you MUST import and use 'crypto-js' (e.g., import CryptoJS from 'crypto-js';) instead of implementing these algorithms from scratch. This prevents recitation blocks and compilation errors.
 
 File Separator Syntax:
 For each file you create or edit, wrap the filename and path inside equals line blocks, write the complete file content raw, and then end the file block.
