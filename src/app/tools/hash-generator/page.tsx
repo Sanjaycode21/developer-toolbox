@@ -1,122 +1,125 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ToolPageWrapper } from '@/components/ToolPageWrapper';
-import { useToolStore } from '@/store/useToolStore';
-import toast from 'react-hot-toast';
+import ToolPageWrapper from '@/components/ToolPageWrapper';
 import CryptoJS from 'crypto-js';
-import { Copy, XCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useToolStore } from '@/store/useToolStore';
+import { Copy } from 'lucide-react';
+
+type HashAlgorithm = 'MD5' | 'SHA1' | 'SHA256' | 'SHA512';
 
 const HashGeneratorPage: React.FC = () => {
   const [inputText, setInputText] = useState<string>('');
-  const [md5Hash, setMd5Hash] = useState<string>('');
-  const [sha1Hash, setSha1Hash] = useState<string>('');
-  const [sha256Hash, setSha256Hash] = useState<string>('');
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<HashAlgorithm>('MD5');
+  const [outputHash, setOutputHash] = useState<string>('');
 
-  const addToHistory = useToolStore((state) => state.addToHistory);
+  const { addToHistory } = useToolStore();
   const toolSlug = "hash-generator";
 
   useEffect(() => {
     addToHistory(toolSlug);
   }, [addToHistory, toolSlug]);
 
-  const generateHashes = useCallback((text: string) => {
-    if (!text) {
-      setMd5Hash('');
-      setSha1Hash('');
-      setSha256Hash('');
-      return;
+  const generateHash = useCallback((text: string, algorithm: HashAlgorithm): string => {
+    if (!text) return '';
+
+    switch (algorithm) {
+      case 'MD5':
+        return CryptoJS.MD5(text).toString();
+      case 'SHA1':
+        return CryptoJS.SHA1(text).toString();
+      case 'SHA256':
+        return CryptoJS.SHA256(text).toString();
+      case 'SHA512':
+        return CryptoJS.SHA512(text).toString();
+      default:
+        return '';
     }
-    setMd5Hash(CryptoJS.MD5(text).toString());
-    setSha1Hash(CryptoJS.SHA1(text).toString());
-    setSha256Hash(CryptoJS.SHA256(text).toString());
   }, []);
 
   useEffect(() => {
-    generateHashes(inputText);
-  }, [inputText, generateHashes]);
+    setOutputHash(generateHash(inputText, selectedAlgorithm));
+  }, [inputText, selectedAlgorithm, generateHash]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputText(e.target.value);
-  };
-
-  const handleClearInput = () => {
-    setInputText('');
-    toast.success('Input cleared!');
-  };
-
-  const copyToClipboard = async (text: string, hashType: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`${hashType} hash copied to clipboard!`);
-    } catch (err) {
-      toast.error('Failed to copy hash.');
-      console.error('Failed to copy: ', err);
+  const handleCopy = async () => {
+    if (outputHash) {
+      try {
+        await navigator.clipboard.writeText(outputHash);
+        toast.success('Hash copied to clipboard!');
+      } catch (err) {
+        toast.error('Failed to copy hash.');
+        console.error('Failed to copy: ', err);
+      }
+    } else {
+      toast('Nothing to copy.', { icon: 'ℹ️' });
     }
   };
-
-  const HashOutputField: React.FC<{ label: string; value: string; hashType: string }> = ({ label, value, hashType }) => (
-    <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-slate-300">{label}</label>
-      <div className="relative">
-        <textarea
-          readOnly
-          value={value}
-          placeholder={`Generated ${hashType} hash...`}
-          className="w-full min-h-[60px] bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 font-mono resize-none focus:outline-none focus:border-indigo-500 transition-colors pr-10"
-          rows={2}
-        />
-        {value && (
-          <button
-            onClick={() => copyToClipboard(value, hashType)}
-            className="absolute top-3 right-3 text-slate-400 hover:text-indigo-400 transition-colors p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-            aria-label={`Copy ${hashType} hash`}
-          >
-            <Copy size={16} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <ToolPageWrapper
       toolSlug={toolSlug}
       toolName="Hash Generator"
-      description="Generate MD5, SHA-1, and SHA-256 hashes from your text."
+      description="Generate cryptographic hashes (MD5, SHA1, SHA256, SHA512) from your text."
     >
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6 h-full">
         {/* Input Section */}
-        <div className="flex-1 flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <label htmlFor="inputText" className="text-lg font-semibold text-slate-100">Input Text</label>
-            {inputText && (
-              <button
-                onClick={handleClearInput}
-                className="flex items-center gap-1 text-sm text-slate-400 hover:text-red-400 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-md p-1"
-              >
-                <XCircle size={16} /> Clear
-              </button>
-            )}
-          </div>
-          <div className="relative">
-            <textarea
-              id="inputText"
-              value={inputText}
-              onChange={handleInputChange}
-              placeholder="Enter text to generate hashes..."
-              className="w-full h-48 bg-slate-800 border border-slate-700 rounded-lg p-4 text-sm text-slate-200 resize-y focus:outline-none focus:border-indigo-500 transition-colors"
-            />
-          </div>
+        <div className="flex-1 flex flex-col">
+          <label htmlFor="inputText" className="block text-sm font-medium text-slate-300 mb-2">
+            Input Text
+          </label>
+          <textarea
+            id="inputText"
+            className="w-full flex-1 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 resize-none font-mono text-sm transition-colors"
+            placeholder="Enter text to hash..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            rows={10}
+          />
         </div>
 
-        {/* Output Section */}
-        <div className="flex-1 flex flex-col gap-6">
-          <h2 className="text-lg font-semibold text-slate-100">Generated Hashes</h2>
-          <div className="grid grid-cols-1 gap-4">
-            <HashOutputField label="MD5 Hash" value={md5Hash} hashType="MD5" />
-            <HashOutputField label="SHA-1 Hash" value={sha1Hash} hashType="SHA-1" />
-            <HashOutputField label="SHA-256 Hash" value={sha256Hash} hashType="SHA-256" />
+        {/* Controls and Output Section */}
+        <div className="flex-1 flex flex-col">
+          {/* Algorithm Selector */}
+          <div className="mb-6">
+            <label htmlFor="algorithmSelect" className="block text-sm font-medium text-slate-300 mb-2">
+              Select Algorithm
+            </label>
+            <select
+              id="algorithmSelect"
+              className="w-full p-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 focus:ring-indigo-500 focus:border-indigo-500 text-sm appearance-none pr-10 cursor-pointer transition-colors"
+              value={selectedAlgorithm}
+              onChange={(e) => setSelectedAlgorithm(e.target.value as HashAlgorithm)}
+            >
+              <option value="MD5">MD5</option>
+              <option value="SHA1">SHA1</option>
+              <option value="SHA256">SHA256</option>
+              <option value="SHA512">SHA512</option>
+            </select>
+          </div>
+
+          {/* Output Section */}
+          <div className="flex-1 flex flex-col">
+            <label htmlFor="outputHash" className="block text-sm font-medium text-slate-300 mb-2">
+              Generated Hash
+            </label>
+            <div className="relative flex-1">
+              <textarea
+                id="outputHash"
+                className="w-full h-full p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 resize-none font-mono text-sm read-only:bg-slate-800 read-only:text-slate-300 transition-colors"
+                readOnly
+                value={outputHash}
+                placeholder="Generated hash will appear here..."
+              />
+              <button
+                onClick={handleCopy}
+                className="absolute top-3 right-3 p-2 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!outputHash}
+                aria-label="Copy hash to clipboard"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
