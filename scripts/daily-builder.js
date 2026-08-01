@@ -104,7 +104,8 @@ function generateDynamicTask() {
   
   // Find one that is not implemented yet using keyword matching (with Windows path normalization)
   let targetIdea = ideas.find(idea => {
-    const words = idea.toLowerCase()
+    const cleanedIdea = idea.replace(/\([^)]*\)/g, ''); // Remove parenthesis contents (e.g. MD5, SHA1, etc.)
+    const words = cleanedIdea.toLowerCase()
       .replace(/[^a-z0-9\s]+/g, ' ')
       .split(/\s+/)
       .filter(w => w !== 'and' && w !== 'or' && w !== 'tool' && w !== 'tools' && w !== '');
