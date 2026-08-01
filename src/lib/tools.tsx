@@ -1,5 +1,6 @@
-// No direct import of Lucide icons here, as the Tool interface does not have an icon property.
-// The sidebar component will map slugs to icons.
+import {
+  Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search
+} from 'lucide-react';
 
 export interface Tool {
   slug: string;
@@ -9,6 +10,11 @@ export interface Tool {
   description: string;
 }
 
+// Helper type for the category map
+export type ToolCategoryMap = {
+  [category: string]: Tool[];
+};
+
 export const tools: Tool[] = [
   // Favorites & History
   {
@@ -16,87 +22,90 @@ export const tools: Tool[] = [
     name: "Favorites",
     category: "General",
     path: "/tools/favorites",
-    description: "Your most loved tools, all in one place.",
+    description: "Your most loved and frequently used tools.",
   },
   {
     slug: "history",
     name: "History",
     category: "General",
     path: "/tools/history",
-    description: "Recently used tools for quick access.",
+    description: "Recently used tools.",
   },
-  // Converters & Encoders
+
+  // Converters
   {
     slug: "base64-encoder-decoder",
     name: "Base64 Encoder / Decoder",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
   },
   {
     slug: "base64-image-encoder-decoder",
     name: "Base64 Image Encoder / Decoder",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/base64-image-encoder-decoder",
-    description: "Encode and decode Base64 images.",
-  },
-  {
-    slug: "unix-timestamp-epoch-converter",
-    name: "Unix Timestamp & Epoch Converter",
-    category: "Converters & Encoders",
-    path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice versa.",
+    description: "Encode and decode images to/from Base64.",
   },
   {
     slug: "case-converter",
     name: "Case Converter",
-    category: "Converters & Encoders",
+    category: "Converters",
     path: "/tools/case-converter",
-    description: "Convert text to different cases: lowercase, uppercase, camelCase, etc.",
+    description: "Convert text between different letter cases.",
   },
   {
-    slug: "hash-generator",
-    name: "Hash Generator",
-    category: "Security",
-    path: "/tools/hash-generator",
-    description: "Generate MD5, SHA1, SHA256 hashes from text.",
+    slug: "csv-viewer-converter",
+    name: "CSV Viewer / Converter",
+    category: "Converters",
+    path: "/tools/csv-viewer-converter",
+    description: "View and convert CSV data.",
   },
+  {
+    slug: "unix-timestamp-epoch-converter",
+    name: "Unix Timestamp & Epoch Converter",
+    category: "Converters",
+    path: "/tools/unix-timestamp-epoch-converter",
+    description: "Convert Unix timestamps to human-readable dates and vice versa.",
+  },
+
   // Formatters
   {
     slug: "json-formatter",
     name: "JSON Formatter",
     category: "Formatters",
     path: "/tools/json-formatter",
-    description: "Beautify and validate JSON data.",
-  },
-  {
-    slug: "xml-formatter",
-    name: "XML Formatter",
-    category: "Formatters",
-    path: "/tools/xml-formatter",
-    description: "Beautify and validate XML data.",
+    description: "Format and validate JSON data.",
   },
   {
     slug: "html-formatter",
     name: "HTML Formatter",
     category: "Formatters",
     path: "/tools/html-formatter",
-    description: "Beautify and validate HTML data.",
+    description: "Format and beautify HTML code.",
+  },
+  {
+    slug: "xml-formatter",
+    name: "XML Formatter",
+    category: "Formatters",
+    path: "/tools/xml-formatter",
+    description: "Format and beautify XML code.",
   },
   {
     slug: "sql-formatter",
     name: "SQL Formatter",
     category: "Formatters",
     path: "/tools/sql-formatter",
-    description: "Beautify and validate SQL queries.",
+    description: "Format and beautify SQL queries.",
   },
   {
     slug: "yaml-formatter",
     name: "YAML Formatter",
     category: "Formatters",
     path: "/tools/yaml-formatter",
-    description: "Beautify and validate YAML data.",
+    description: "Format and validate YAML data.",
   },
+
   // Generators
   {
     slug: "uuid-generator",
@@ -131,57 +140,81 @@ export const tools: Tool[] = [
     name: "CSS Gradient Generator",
     category: "Generators",
     path: "/tools/css-gradient-generator",
-    description: "Generate beautiful CSS linear and radial gradients.",
+    description: "Create beautiful CSS linear and radial gradients.",
   },
-  // Web & Utilities
+
+  // Web
   {
     slug: "jwt-decoder",
     name: "JWT Decoder",
-    category: "Web & Utilities",
+    category: "Web",
     path: "/tools/jwt-decoder",
-    description: "Decode and inspect JSON Web Tokens.",
+    description: "Decode JSON Web Tokens to inspect header, payload, and signature.",
   },
+  {
+    slug: "url-encoder-decoder",
+    name: "URL Encoder / Decoder",
+    category: "Web",
+    path: "/tools/url-encoder-decoder",
+    description: "Encode and decode URLs.",
+  },
+
+  // Text
   {
     slug: "markdown-live-preview",
     name: "Markdown Live Preview",
-    category: "Web & Utilities",
+    category: "Text",
     path: "/tools/markdown-live-preview",
     description: "Write and preview Markdown in real-time.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
-    category: "Web & Utilities",
+    category: "Text",
     path: "/tools/regex-tester-generator",
-    description: "Test and build regular expressions.",
+    description: "Test and generate regular expressions.",
   },
+
+  // Utilities
   {
     slug: "color-picker",
     name: "Color Picker",
-    category: "Web & Utilities",
+    category: "Utilities",
     path: "/tools/color-picker",
-    description: "Pick colors and convert between formats (HEX, RGB, HSL).",
+    description: "Select colors and get their HEX, RGB, HSL values.",
   },
+
+  // Cryptography
   {
-    slug: "csv-viewer-converter",
-    name: "CSV Viewer & Converter",
-    category: "Web & Utilities",
-    path: "/tools/csv-viewer-converter",
-    description: "View, edit, and convert CSV data.",
+    slug: "hash-generator",
+    name: "Hash Generator",
+    category: "Cryptography",
+    path: "/tools/hash-generator",
+    description: "Generate MD5, SHA1, SHA256 hashes from text.",
   },
 ];
 
 export function toolsByCategory(): Record<string, Tool[]> {
-  const categories: Record<string, Tool[]> = {};
-  tools.forEach(tool => {
-    if (!categories[tool.category]) {
-      categories[tool.category] = [];
+  return tools.reduce((acc, tool) => {
+    if (!acc[tool.category]) {
+      acc[tool.category] = [];
     }
-    categories[tool.category].push(tool);
-  });
-  return categories;
+    acc[tool.category].push(tool);
+    return acc;
+  }, {} as Record<string, Tool[]>);
 }
 
 export function getToolBySlug(slug: string): Tool | undefined {
   return tools.find(tool => tool.slug === slug);
 }
+
+export const categoryIcons: { [key: string]: React.ElementType } = {
+  "General": Star,
+  "Converters": Layers,
+  "Formatters": Code,
+  "Generators": Sparkles,
+  "Web": Terminal,
+  "Text": FileText,
+  "Utilities": Settings,
+  "Cryptography": Shield, // Using Shield for Cryptography
+};
