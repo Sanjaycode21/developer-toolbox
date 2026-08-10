@@ -1,29 +1,35 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ToolPageWrapper } from '@/components/ToolPageWrapper';
+import ToolPageWrapper from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
 import { Copy, RefreshCcw } from 'lucide-react';
 
-interface MetaState {
+const TOOL_SLUG = "meta-tag-generator-og-preview";
+const TOOL_NAME = "Meta Tag Generator & OG Preview";
+const TOOL_DESCRIPTION = "Generate essential meta tags for SEO and social media, and preview Open Graph cards.";
+
+interface MetaTagsState {
   title: string;
   description: string;
   keywords: string;
   author: string;
-  robotsIndex: 'index' | 'noindex';
-  robotsFollow: 'follow' | 'nofollow';
+  robots: string; // e.g., "index, follow", "noindex, nofollow"
   charset: string;
   viewport: string;
-  refreshDelay: number | '';
-  refreshUrl: string;
+  refreshDelay: string; // in seconds, optional
+
+  // Open Graph
   ogTitle: string;
   ogDescription: string;
-  ogType: string;
   ogUrl: string;
+  ogType: string;
   ogImage: string;
   ogSiteName: string;
-  twitterCard: 'summary' | 'summary_large_image' | 'app' | 'player';
+
+  // Twitter Card
+  twitterCard: string; // e.g., "summary", "summary_large_image"
   twitterSite: string;
   twitterCreator: string;
   twitterTitle: string;
@@ -31,323 +37,488 @@ interface MetaState {
   twitterImage: string;
 }
 
-const initialMetaState: MetaState = {
-  title: '',
-  description: '',
-  keywords: '',
-  author: '',
-  robotsIndex: 'index',
-  robotsFollow: 'follow',
-  charset: 'UTF-8',
-  viewport: 'width=device-width, initial-scale=1.0',
-  refreshDelay: '',
-  refreshUrl: '',
-  ogTitle: '',
-  ogDescription: '',
-  ogType: 'website',
-  ogUrl: '',
-  ogImage: '',
-  ogSiteName: '',
-  twitterCard: 'summary',
-  twitterSite: '',
-  twitterCreator: '',
-  twitterTitle: '',
-  twitterDescription: '',
-  twitterImage: '',
+const defaultState: MetaTagsState = {
+  title: "",
+  description: "",
+  keywords: "",
+  author: "",
+  robots: "index, follow",
+  charset: "UTF-8",
+  viewport: "width=device-width, initial-scale=1.0",
+  refreshDelay: "",
+
+  ogTitle: "",
+  ogDescription: "",
+  ogUrl: "",
+  ogType: "website",
+  ogImage: "",
+  ogSiteName: "",
+
+  twitterCard: "summary_large_image",
+  twitterSite: "",
+  twitterCreator: "",
+  twitterTitle: "",
+  twitterDescription: "",
+  twitterImage: "",
 };
 
 const MetaTagGeneratorPage: React.FC = () => {
-  const [metaState, setMetaState] = useState<MetaState>(initialMetaState);
-  const [generatedHtml, setGeneratedHtml] = useState<string>('');
-  const { addToHistory } = useToolStore();
+  const [state, setState] = useState<MetaTagsState>(defaultState);
+  const [generatedHtml, setGeneratedHtml] = useState<string>("");
+  const addToHistory = useToolStore((s) => s.addToHistory);
 
   useEffect(() => {
-    addToHistory('meta-tag-generator');
+    addToHistory(TOOL_SLUG);
   }, [addToHistory]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setState((prevState) => ({ ...prevState, [name]: value }));
+  };
+
   const generateMetaTags = useCallback(() => {
-    const tags: string[] = [];
+    let html = "";
 
     // Basic Meta Tags
-    tags.push(`<meta charset="${metaState.charset}">`);
-    tags.push(`<meta name="viewport" content="${metaState.viewport}">`);
-    if (metaState.title) tags.push(`<title>${metaState.title}</title>`);
-    if (metaState.description) tags.push(`<meta name="description" content="${metaState.description}">`);
-    if (metaState.keywords) tags.push(`<meta name="keywords" content="${metaState.keywords}">`);
-    if (metaState.author) tags.push(`<meta name="author" content="${metaState.author}">`);
-
-    const robotsContent = [];
-    if (metaState.robotsIndex === 'noindex') robotsContent.push('noindex'); else robotsContent.push('index');
-    if (metaState.robotsFollow === 'nofollow') robotsContent.push('nofollow'); else robotsContent.push('follow');
-    tags.push(`<meta name="robots" content="${robotsContent.join(', ')}">`);
-
-    if (metaState.refreshDelay && metaState.refreshDelay > 0) {
-      let content = `${metaState.refreshDelay}`;
-      if (metaState.refreshUrl) {
-        content += `;url=${metaState.refreshUrl}`;
-      }
-      tags.push(`<meta http-equiv="refresh" content="${content}">`);
-    }
+    if (state.charset) html += `<meta charset="${state.charset}" />\n`;
+    if (state.viewport) html += `<meta name="viewport" content="${state.viewport}" />\n`;
+    if (state.title) html += `<title>${state.title}</title>\n`; // Title tag is not a meta tag, but often included here for convenience
+    if (state.description) html += `<meta name="description" content="${state.description}" />\n`;
+    if (state.keywords) html += `<meta name="keywords" content="${state.keywords}" />\n`;
+    if (state.author) html += `<meta name="author" content="${state.author}" />\n`;
+    if (state.robots) html += `<meta name="robots" content="${state.robots}" />\n`;
+    if (state.refreshDelay) html += `<meta http-equiv="refresh" content="${state.refreshDelay}" />\n`;
 
     // Open Graph Tags
-    if (metaState.ogTitle || metaState.title) tags.push(`<meta property="og:title" content="${metaState.ogTitle || metaState.title}">`);
-    if (metaState.ogDescription || metaState.description) tags.push(`<meta property="og:description" content="${metaState.ogDescription || metaState.description}">`);
-    if (metaState.ogType) tags.push(`<meta property="og:type" content="${metaState.ogType}">`);
-    if (metaState.ogUrl) tags.push(`<meta property="og:url" content="${metaState.ogUrl}">`);
-    if (metaState.ogImage) tags.push(`<meta property="og:image" content="${metaState.ogImage}">`);
-    if (metaState.ogSiteName) tags.push(`<meta property="og:site_name" content="${metaState.ogSiteName}">`);
+    if (state.ogTitle || state.title) html += `<meta property="og:title" content="${state.ogTitle || state.title}" />\n`;
+    if (state.ogDescription || state.description) html += `<meta property="og:description" content="${state.ogDescription || state.description}" />\n`;
+    if (state.ogUrl) html += `<meta property="og:url" content="${state.ogUrl}" />\n`;
+    if (state.ogType) html += `<meta property="og:type" content="${state.ogType}" />\n`;
+    if (state.ogImage) html += `<meta property="og:image" content="${state.ogImage}" />\n`;
+    if (state.ogSiteName) html += `<meta property="og:site_name" content="${state.ogSiteName}" />\n`;
 
     // Twitter Card Tags
-    if (metaState.twitterCard) tags.push(`<meta name="twitter:card" content="${metaState.twitterCard}">`);
-    if (metaState.twitterSite) tags.push(`<meta name="twitter:site" content="${metaState.twitterSite}">`);
-    if (metaState.twitterCreator) tags.push(`<meta name="twitter:creator" content="${metaState.twitterCreator}">`);
-    if (metaState.twitterTitle || metaState.ogTitle || metaState.title) tags.push(`<meta name="twitter:title" content="${metaState.twitterTitle || metaState.ogTitle || metaState.title}">`);
-    if (metaState.twitterDescription || metaState.ogDescription || metaState.description) tags.push(`<meta name="twitter:description" content="${metaState.twitterDescription || metaState.ogDescription || metaState.description}">`);
-    if (metaState.twitterImage || metaState.ogImage) tags.push(`<meta name="twitter:image" content="${metaState.twitterImage || metaState.ogImage}">`);
+    if (state.twitterCard) html += `<meta name="twitter:card" content="${state.twitterCard}" />\n`;
+    if (state.twitterSite) html += `<meta name="twitter:site" content="${state.twitterSite}" />\n`;
+    if (state.twitterCreator) html += `<meta name="twitter:creator" content="${state.twitterCreator}" />\n`;
+    if (state.twitterTitle || state.ogTitle || state.title) html += `<meta name="twitter:title" content="${state.twitterTitle || state.ogTitle || state.title}" />\n`;
+    if (state.twitterDescription || state.ogDescription || state.description) html += `<meta name="twitter:description" content="${state.twitterDescription || state.ogDescription || state.description}" />\n`;
+    if (state.twitterImage || state.ogImage) html += `<meta name="twitter:image" content="${state.twitterImage || state.ogImage}" />\n`;
 
-    setGeneratedHtml(tags.map(tag => tag.trim()).join('\n'));
-  }, [metaState]);
+    setGeneratedHtml(html.trim());
+  }, [state]);
 
   useEffect(() => {
     generateMetaTags();
-  }, [metaState, generateMetaTags]);
+  }, [state, generateMetaTags]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedHtml);
-    toast.success('Meta tags copied to clipboard!');
+  const copyToClipboard = () => {
+    if (generatedHtml) {
+      navigator.clipboard.writeText(generatedHtml);
+      toast.success("Meta tags copied to clipboard!");
+    } else {
+      toast.error("No meta tags to copy.");
+    }
   };
 
-  const handleReset = () => {
-    setMetaState(initialMetaState);
-    toast.success('Form reset to default values!');
+  const resetFields = () => {
+    setState(defaultState);
+    toast.success("Fields reset to default!");
   };
 
-  const renderInput = (id: keyof MetaState, label: string, type: string = 'text', placeholder: string = '', rows: number = 1) => (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-300">{label}</label>
-      {type === 'textarea' ? (
-        <textarea
-          id={id}
-          value={metaState[id] as string}
-          onChange={(e) => setMetaState({ ...metaState, [id]: e.target.value })}
-          className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors resize-y"
-          placeholder={placeholder}
-          rows={rows}
-        />
-      ) : (
-        <input
-          type={type}
-          id={id}
-          value={metaState[id] as string | number}
-          onChange={(e) => setMetaState({ ...metaState, [id]: type === 'number' ? (e.target.value ? parseInt(e.target.value) : '') : e.target.value })}
-          className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-          placeholder={placeholder}
-          min={type === 'number' ? "0" : undefined}
-        />
-      )}
-    </div>
-  );
+  // Helper to truncate text for preview
+  const truncate = (text: string, length: number) => {
+    if (!text) return '';
+    return text.length > length ? text.substring(0, length) + '...' : text;
+  };
 
-  const renderSelect = (id: keyof MetaState, label: string, options: { value: string; label: string }[]) => (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-300">{label}</label>
-      <div className="relative">
-        <select
-          id={id}
-          value={metaState[id] as string}
-          onChange={(e) => setMetaState({ ...metaState, [id]: e.target.value })}
-          className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors appearance-none cursor-pointer pr-10"
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
+  const ogPreviewTitle = state.ogTitle || state.title || "Your Page Title";
+  const ogPreviewDescription = state.ogDescription || state.description || "A short description of your page content.";
+  const ogPreviewUrl = state.ogUrl || "https://example.com/your-page";
+  const ogPreviewImage = state.ogImage || "https://via.placeholder.com/1200x630?text=Open+Graph+Image";
+  const ogPreviewSiteName = state.ogSiteName || "Your Website Name";
 
-  const ogPreviewTitle = metaState.ogTitle || metaState.title || 'Your Website Title';
-  const ogPreviewDescription = metaState.ogDescription || metaState.description || 'A compelling description of your website content.';
-  const ogPreviewUrl = metaState.ogUrl || 'https://example.com';
-  const ogPreviewSiteName = metaState.ogSiteName || 'Example.com';
-  const ogPreviewImage = metaState.ogImage || 'https://via.placeholder.com/1200x630.png?text=Open+Graph+Image';
-
-  const twitterPreviewTitle = metaState.twitterTitle || ogPreviewTitle;
-  const twitterPreviewDescription = metaState.twitterDescription || ogPreviewDescription;
-  const twitterPreviewImage = metaState.twitterImage || ogPreviewImage;
+  const twitterPreviewTitle = state.twitterTitle || ogPreviewTitle;
+  const twitterPreviewDescription = state.twitterDescription || ogPreviewDescription;
+  const twitterPreviewImage = state.twitterImage || ogPreviewImage;
+  const twitterPreviewSite = state.twitterSite || "@YourTwitterHandle";
+  const twitterPreviewCreator = state.twitterCreator || "@YourCreatorHandle";
 
   return (
     <ToolPageWrapper
-      toolSlug="meta-tag-generator"
-      toolName="Meta Tag Generator & OG Preview"
-      description="Generate essential meta tags for SEO and social media, with a live Open Graph preview."
+      toolSlug={TOOL_SLUG}
+      toolName={TOOL_NAME}
+      description={TOOL_DESCRIPTION}
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Inputs */}
+        {/* Input Section */}
         <div className="flex flex-col gap-6">
           {/* Basic Meta Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Basic Meta Tags</h3>
-            <div className="flex flex-col gap-4">
-              {renderInput('title', 'Title', 'text', 'e.g., My Awesome Website')}
-              {renderInput('description', 'Description', 'textarea', 'A brief summary of your page content.', 3)}
-              {renderInput('keywords', 'Keywords', 'text', 'e.g., web development, tools, SEO')}
-              {renderInput('author', 'Author', 'text', 'e.g., John Doe')}
-
-              <div className="flex gap-4">
-                {renderSelect('robotsIndex', 'Robots Indexing', [
-                  { value: 'index', label: 'Index' },
-                  { value: 'noindex', label: 'Noindex' },
-                ])}
-                {renderSelect('robotsFollow', 'Robots Following', [
-                  { value: 'follow', label: 'Follow' },
-                  { value: 'nofollow', label: 'Nofollow' },
-                ])}
+            <h3 className="text-xl font-semibold mb-4 text-slate-200">Basic Meta Tags</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={state.title}
+                  onChange={handleChange}
+                  placeholder="e.g., My Awesome Page"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
               </div>
-
-              {renderSelect('charset', 'Charset', [
-                { value: 'UTF-8', label: 'UTF-8' },
-                { value: 'ISO-8859-1', label: 'ISO-8859-1' },
-              ])}
-              {renderInput('viewport', 'Viewport', 'text', 'width=device-width, initial-scale=1.0')}
-
-              <div className="flex flex-col gap-1">
-                <label htmlFor="refreshDelay" className="text-sm font-medium text-slate-300">Refresh Delay (seconds)</label>
+              <div>
+                <label htmlFor="author" className="block text-sm font-medium text-slate-300 mb-1">Author</label>
+                <input
+                  type="text"
+                  id="author"
+                  name="author"
+                  value={state.author}
+                  onChange={handleChange}
+                  placeholder="e.g., John Doe"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={state.description}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="A concise summary of your page content for search engines."
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                ></textarea>
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="keywords" className="block text-sm font-medium text-slate-300 mb-1">Keywords</label>
+                <input
+                  type="text"
+                  id="keywords"
+                  name="keywords"
+                  value={state.keywords}
+                  onChange={handleChange}
+                  placeholder="e.g., seo, web development, tools"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="robots" className="block text-sm font-medium text-slate-300 mb-1">Robots</label>
+                <select
+                  id="robots"
+                  name="robots"
+                  value={state.robots}
+                  onChange={handleChange}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                >
+                  <option value="index, follow">index, follow</option>
+                  <option value="noindex, follow">noindex, follow</option>
+                  <option value="index, nofollow">index, nofollow</option>
+                  <option value="noindex, nofollow">noindex, nofollow</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="charset" className="block text-sm font-medium text-slate-300 mb-1">Charset</label>
+                <input
+                  type="text"
+                  id="charset"
+                  name="charset"
+                  value={state.charset}
+                  onChange={handleChange}
+                  placeholder="e.g., UTF-8"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="viewport" className="block text-sm font-medium text-slate-300 mb-1">Viewport</label>
+                <input
+                  type="text"
+                  id="viewport"
+                  name="viewport"
+                  value={state.viewport}
+                  onChange={handleChange}
+                  placeholder="e.g., width=device-width, initial-scale=1.0"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="refreshDelay" className="block text-sm font-medium text-slate-300 mb-1">Refresh Delay (seconds, optional)</label>
                 <input
                   type="number"
                   id="refreshDelay"
-                  value={metaState.refreshDelay}
-                  onChange={(e) => setMetaState({ ...metaState, refreshDelay: e.target.value ? parseInt(e.target.value) : '' })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
+                  name="refreshDelay"
+                  value={state.refreshDelay}
+                  onChange={handleChange}
                   placeholder="e.g., 5"
-                  min="0"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                 />
               </div>
-              {metaState.refreshDelay !== '' && (
-                renderInput('refreshUrl', 'Refresh URL (optional)', 'text', 'e.g., https://example.com/new-page')
-              )}
             </div>
           </div>
 
           {/* Open Graph Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Open Graph Tags (Facebook, LinkedIn, etc.)</h3>
-            <div className="flex flex-col gap-4">
-              {renderInput('ogTitle', 'OG Title (defaults to Title)', 'text', 'e.g., My Awesome OG Title')}
-              {renderInput('ogDescription', 'OG Description (defaults to Description)', 'textarea', 'A detailed description for social media shares.', 3)}
-              {renderSelect('ogType', 'OG Type', [
-                { value: 'website', label: 'Website' },
-                { value: 'article', label: 'Article' },
-                { value: 'book', label: 'Book' },
-                { value: 'profile', label: 'Profile' },
-                { value: 'video.movie', label: 'Video (Movie)' },
-                { value: 'video.episode', label: 'Video (Episode)' },
-              ])}
-              {renderInput('ogUrl', 'OG URL', 'text', 'e.g., https://example.com/page')}
-              {renderInput('ogImage', 'OG Image URL (1200x630 recommended)', 'text', 'e.g., https://example.com/image.jpg')}
-              {renderInput('ogSiteName', 'OG Site Name', 'text', 'e.g., My Awesome Site')}
+            <h3 className="text-xl font-semibold mb-4 text-slate-200">Open Graph Tags (Facebook, LinkedIn, etc.)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="ogTitle" className="block text-sm font-medium text-slate-300 mb-1">OG Title</label>
+                <input
+                  type="text"
+                  id="ogTitle"
+                  name="ogTitle"
+                  value={state.ogTitle}
+                  onChange={handleChange}
+                  placeholder="e.g., My Page for Social Media"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="ogUrl" className="block text-sm font-medium text-slate-300 mb-1">OG URL</label>
+                <input
+                  type="url"
+                  id="ogUrl"
+                  name="ogUrl"
+                  value={state.ogUrl}
+                  onChange={handleChange}
+                  placeholder="e.g., https://example.com/my-page"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="ogDescription" className="block text-sm font-medium text-slate-300 mb-1">OG Description</label>
+                <textarea
+                  id="ogDescription"
+                  name="ogDescription"
+                  value={state.ogDescription}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="A compelling description for social media shares."
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                ></textarea>
+              </div>
+              <div>
+                <label htmlFor="ogType" className="block text-sm font-medium text-slate-300 mb-1">OG Type</label>
+                <select
+                  id="ogType"
+                  name="ogType"
+                  value={state.ogType}
+                  onChange={handleChange}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                >
+                  <option value="website">website</option>
+                  <option value="article">article</option>
+                  <option value="book">book</option>
+                  <option value="profile">profile</option>
+                  <option value="video.movie">video.movie</option>
+                  <option value="video.episode">video.episode</option>
+                  <option value="video.tv_show">video.tv_show</option>
+                  <option value="video.other">video.other</option>
+                  <option value="music.song">music.song</option>
+                  <option value="music.album">music.album</option>
+                  <option value="music.playlist">music.playlist</option>
+                  <option value="music.radio_station">music.radio_station</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="ogSiteName" className="block text-sm font-medium text-slate-300 mb-1">OG Site Name</label>
+                <input
+                  type="text"
+                  id="ogSiteName"
+                  name="ogSiteName"
+                  value={state.ogSiteName}
+                  onChange={handleChange}
+                  placeholder="e.g., DevForge Tools"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="ogImage" className="block text-sm font-medium text-slate-300 mb-1">OG Image URL</label>
+                <input
+                  type="url"
+                  id="ogImage"
+                  name="ogImage"
+                  value={state.ogImage}
+                  onChange={handleChange}
+                  placeholder="e.g., https://example.com/image.jpg (1200x630 recommended)"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
             </div>
           </div>
 
           {/* Twitter Card Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Twitter Card Tags</h3>
-            <div className="flex flex-col gap-4">
-              {renderSelect('twitterCard', 'Twitter Card Type', [
-                { value: 'summary', label: 'Summary Card' },
-                { value: 'summary_large_image', label: 'Summary Card with Large Image' },
-                { value: 'app', label: 'App Card' },
-                { value: 'player', label: 'Player Card' },
-              ])}
-              {renderInput('twitterSite', 'Twitter Site (@username)', 'text', 'e.g., @yourtwitterhandle')}
-              {renderInput('twitterCreator', 'Twitter Creator (@username)', 'text', 'e.g., @yourcreatorhandle')}
-              {renderInput('twitterTitle', 'Twitter Title (defaults to OG Title)', 'text', 'e.g., My Awesome Twitter Title')}
-              {renderInput('twitterDescription', 'Twitter Description (defaults to OG Description)', 'textarea', 'A detailed description for Twitter shares.', 3)}
-              {renderInput('twitterImage', 'Twitter Image URL (defaults to OG Image)', 'text', 'e.g., https://example.com/twitter-image.jpg')}
+            <h3 className="text-xl font-semibold mb-4 text-slate-200">Twitter Card Tags</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="twitterCard" className="block text-sm font-medium text-slate-300 mb-1">Twitter Card Type</label>
+                <select
+                  id="twitterCard"
+                  name="twitterCard"
+                  value={state.twitterCard}
+                  onChange={handleChange}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                >
+                  <option value="summary">Summary Card</option>
+                  <option value="summary_large_image">Summary Card with Large Image</option>
+                  <option value="app">App Card</option>
+                  <option value="player">Player Card</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="twitterSite" className="block text-sm font-medium text-slate-300 mb-1">Twitter Site (@handle)</label>
+                <input
+                  type="text"
+                  id="twitterSite"
+                  name="twitterSite"
+                  value={state.twitterSite}
+                  onChange={handleChange}
+                  placeholder="e.g., @DevForgeTools"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="twitterCreator" className="block text-sm font-medium text-slate-300 mb-1">Twitter Creator (@handle)</label>
+                <input
+                  type="text"
+                  id="twitterCreator"
+                  name="twitterCreator"
+                  value={state.twitterCreator}
+                  onChange={handleChange}
+                  placeholder="e.g., @YourHandle"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="twitterTitle" className="block text-sm font-medium text-slate-300 mb-1">Twitter Title</label>
+                <input
+                  type="text"
+                  id="twitterTitle"
+                  name="twitterTitle"
+                  value={state.twitterTitle}
+                  onChange={handleChange}
+                  placeholder="e.g., My Twitter Card Title"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="twitterDescription" className="block text-sm font-medium text-slate-300 mb-1">Twitter Description</label>
+                <textarea
+                  id="twitterDescription"
+                  name="twitterDescription"
+                  value={state.twitterDescription}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="A description for your Twitter card."
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                ></textarea>
+              </div>
+              <div className="md:col-span-2">
+                <label htmlFor="twitterImage" className="block text-sm font-medium text-slate-300 mb-1">Twitter Image URL</label>
+                <input
+                  type="url"
+                  id="twitterImage"
+                  name="twitterImage"
+                  value={state.twitterImage}
+                  onChange={handleChange}
+                  placeholder="e.g., https://example.com/twitter-image.jpg (800x418 for large)"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Output & Preview */}
+        {/* Output Section */}
         <div className="flex flex-col gap-6">
           {/* Generated HTML */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Generated HTML</h3>
+            <h3 className="text-xl font-semibold mb-4 text-slate-200">Generated Meta Tags</h3>
             <div className="relative">
               <textarea
                 value={generatedHtml}
                 readOnly
                 rows={15}
-                className="w-full bg-slate-900 border border-slate-700 rounded-md p-4 text-sm text-slate-50 font-mono focus:outline-none resize-none"
-              />
-              <button
-                onClick={handleCopy}
-                className="absolute top-3 right-3 p-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-slate-50 transition-colors"
-                aria-label="Copy to clipboard"
-              >
-                <Copy size={16} />
-              </button>
-            </div>
-            <button
-              onClick={handleReset}
-              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors"
-            >
-              <RefreshCcw size={18} /> Reset All Fields
-            </button>
-          </div>
-
-          {/* OG Preview */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Open Graph Preview (Facebook/LinkedIn)</h3>
-            <div className="bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-lg">
-              <img
-                src={ogPreviewImage}
-                alt="Open Graph Preview"
-                className="w-full h-auto object-cover max-h-60"
-                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/1200x630.png?text=Open+Graph+Image'; }}
-              />
-              <div className="p-4">
-                <p className="text-xs text-slate-400 uppercase font-medium mb-1">{ogPreviewSiteName}</p>
-                <h4 className="text-lg font-semibold text-slate-100 mb-1 line-clamp-2">{ogPreviewTitle}</h4>
-                <p className="text-sm text-slate-300 line-clamp-3">{ogPreviewDescription}</p>
-                <p className="text-xs text-indigo-400 mt-2 truncate">{ogPreviewUrl}</p>
+                className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 font-mono text-sm text-slate-100 resize-y min-h-[200px]"
+                placeholder="Generated meta tags will appear here..."
+              ></textarea>
+              <div className="absolute top-3 right-3 flex gap-2">
+                <button
+                  onClick={copyToClipboard}
+                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-slate-50 transition-colors"
+                  title="Copy to Clipboard"
+                >
+                  <Copy size={16} />
+                </button>
+                <button
+                  onClick={resetFields}
+                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-slate-50 transition-colors"
+                  title="Reset Fields"
+                >
+                  <RefreshCcw size={16} />
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Twitter Card Preview */}
+          {/* OG Preview */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Twitter Card Preview</h3>
-            <div className="bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-lg">
-              {metaState.twitterCard === 'summary_large_image' && (
-                <img
-                  src={twitterPreviewImage}
-                  alt="Twitter Card Preview"
-                  className="w-full h-auto object-cover max-h-60"
-                  onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/800x400.png?text=Twitter+Card+Image'; }}
-                />
-              )}
-              <div className="p-4 flex gap-4">
-                {metaState.twitterCard === 'summary' && (
-                  <img
-                    src={twitterPreviewImage}
-                    alt="Twitter Card Preview"
-                    className="w-20 h-20 object-cover rounded-md flex-shrink-0"
-                    onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/120x120.png?text=Twitter+Image'; }}
-                  />
+            <h3 className="text-xl font-semibold mb-4 text-slate-200">Open Graph Preview</h3>
+            <div className="flex flex-col gap-6">
+              {/* Generic Social Card Preview */}
+              <div className="bg-slate-900 rounded-lg overflow-hidden shadow-lg border border-slate-700">
+                <div className="relative w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm overflow-hidden">
+                  {ogPreviewImage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={ogPreviewImage}
+                      alt="Open Graph Image"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://via.placeholder.com/1200x630?text=Image+Load+Error";
+                        e.currentTarget.onerror = null;
+                      }}
+                    />
+                  )}
+                  {!ogPreviewImage && <span className="z-10">No OG Image</span>}
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-slate-400 uppercase mb-1">{truncate(ogPreviewUrl.replace(/(^\w+:|^)\/\//, '').split('/')[0], 40)}</p>
+                  <h4 className="text-lg font-semibold text-slate-100 mb-1">{truncate(ogPreviewTitle, 70)}</h4>
+                  <p className="text-sm text-slate-300 line-clamp-2">{truncate(ogPreviewDescription, 150)}</p>
+                </div>
+              </div>
+
+              {/* Twitter Card Preview */}
+              <div className="bg-slate-900 rounded-lg overflow-hidden shadow-lg border border-slate-700">
+                {state.twitterCard === "summary_large_image" && (
+                  <div className="relative w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm overflow-hidden">
+                    {twitterPreviewImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={twitterPreviewImage}
+                        alt="Twitter Card Image"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://via.placeholder.com/800x418?text=Image+Load+Error";
+                          e.currentTarget.onerror = null;
+                        }}
+                      />
+                    )}
+                    {!twitterPreviewImage && <span className="z-10">No Twitter Image</span>}
+                  </div>
                 )}
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-slate-100 mb-1 line-clamp-2">{twitterPreviewTitle}</h4>
-                  <p className="text-sm text-slate-300 line-clamp-3">{twitterPreviewDescription}</p>
-                  <p className="text-xs text-slate-400 mt-2 truncate">
-                    {metaState.twitterSite || metaState.twitterCreator ? `${metaState.twitterSite || metaState.twitterCreator} / ` : ''}
-                    {ogPreviewSiteName}
-                  </p>
+                <div className="p-4">
+                  <h4 className="text-lg font-semibold text-slate-100 mb-1">{truncate(twitterPreviewTitle, 70)}</h4>
+                  <p className="text-sm text-slate-300 line-clamp-2 mb-2">{truncate(twitterPreviewDescription, 150)}</p>
+                  <div className="flex items-center text-xs text-slate-400">
+                    {twitterPreviewSite && <span>{twitterPreviewSite}</span>}
+                    {twitterPreviewSite && twitterPreviewCreator && <span className="mx-1">•</span>}
+                    {twitterPreviewCreator && <span>{twitterPreviewCreator}</span>}
+                  </div>
                 </div>
               </div>
             </div>
