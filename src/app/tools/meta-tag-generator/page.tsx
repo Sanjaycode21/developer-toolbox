@@ -1,172 +1,169 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import ToolPageWrapper from '@/components/ToolPageWrapper';
+import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
-import { Copy, RefreshCcw } from 'lucide-react';
-
-const TOOL_SLUG = "meta-tag-generator-og-preview";
-const TOOL_NAME = "Meta Tag Generator & OG Preview";
-const TOOL_DESCRIPTION = "Generate essential meta tags for SEO and social media, and preview Open Graph cards.";
-
-interface MetaTagsState {
-  title: string;
-  description: string;
-  keywords: string;
-  author: string;
-  robots: string; // e.g., "index, follow", "noindex, nofollow"
-  charset: string;
-  viewport: string;
-  refreshDelay: string; // in seconds, optional
-
-  // Open Graph
-  ogTitle: string;
-  ogDescription: string;
-  ogUrl: string;
-  ogType: string;
-  ogImage: string;
-  ogSiteName: string;
-
-  // Twitter Card
-  twitterCard: string; // e.g., "summary", "summary_large_image"
-  twitterSite: string;
-  twitterCreator: string;
-  twitterTitle: string;
-  twitterDescription: string;
-  twitterImage: string;
-}
-
-const defaultState: MetaTagsState = {
-  title: "",
-  description: "",
-  keywords: "",
-  author: "",
-  robots: "index, follow",
-  charset: "UTF-8",
-  viewport: "width=device-width, initial-scale=1.0",
-  refreshDelay: "",
-
-  ogTitle: "",
-  ogDescription: "",
-  ogUrl: "",
-  ogType: "website",
-  ogImage: "",
-  ogSiteName: "",
-
-  twitterCard: "summary_large_image",
-  twitterSite: "",
-  twitterCreator: "",
-  twitterTitle: "",
-  twitterDescription: "",
-  twitterImage: "",
-};
 
 const MetaTagGeneratorPage: React.FC = () => {
-  const [state, setState] = useState<MetaTagsState>(defaultState);
-  const [generatedHtml, setGeneratedHtml] = useState<string>("");
-  const addToHistory = useToolStore((s) => s.addToHistory);
+  const toolSlug = "meta-tag-generator";
+  const { addToHistory } = useToolStore();
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [keywords, setKeywords] = useState('');
+  const [author, setAuthor] = useState('');
+  const [viewport, setViewport] = useState('width=device-width, initial-scale=1.0');
+
+  // Open Graph (OG) Tags
+  const [ogUrl, setOgUrl] = useState('');
+  const [ogType, setOgType] = useState('website');
+  const [ogImage, setOgImage] = useState('');
+  const [ogImageAlt, setOgImageAlt] = useState('');
+  const [ogLocale, setOgLocale] = useState('en_US');
+
+  // Twitter Card Tags
+  const [twitterCard, setTwitterCard] = useState('summary_large_image');
+  const [twitterSite, setTwitterSite] = useState('');
+  const [twitterCreator, setTwitterCreator] = useState('');
+  const [twitterImage, setTwitterImage] = useState('');
+  const [twitterImageAlt, setTwitterImageAlt] = useState('');
+
+  const [generatedMetaTags, setGeneratedMetaTags] = useState('');
 
   useEffect(() => {
-    addToHistory(TOOL_SLUG);
-  }, [addToHistory]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setState((prevState) => ({ ...prevState, [name]: value }));
-  };
+    addToHistory(toolSlug);
+  }, [addToHistory, toolSlug]);
 
   const generateMetaTags = useCallback(() => {
-    let html = "";
+    let tags = [];
 
     // Basic Meta Tags
-    if (state.charset) html += `<meta charset="${state.charset}" />\n`;
-    if (state.viewport) html += `<meta name="viewport" content="${state.viewport}" />\n`;
-    if (state.title) html += `<title>${state.title}</title>\n`; // Title tag is not a meta tag, but often included here for convenience
-    if (state.description) html += `<meta name="description" content="${state.description}" />\n`;
-    if (state.keywords) html += `<meta name="keywords" content="${state.keywords}" />\n`;
-    if (state.author) html += `<meta name="author" content="${state.author}" />\n`;
-    if (state.robots) html += `<meta name="robots" content="${state.robots}" />\n`;
-    if (state.refreshDelay) html += `<meta http-equiv="refresh" content="${state.refreshDelay}" />\n`;
+    if (title) tags.push(`<title>${title}</title>`);
+    if (description) tags.push(`<meta name="description" content="${description}" />`);
+    if (keywords) tags.push(`<meta name="keywords" content="${keywords}" />`);
+    if (author) tags.push(`<meta name="author" content="${author}" />`);
+    if (viewport) tags.push(`<meta name="viewport" content="${viewport}" />`);
 
     // Open Graph Tags
-    if (state.ogTitle || state.title) html += `<meta property="og:title" content="${state.ogTitle || state.title}" />\n`;
-    if (state.ogDescription || state.description) html += `<meta property="og:description" content="${state.ogDescription || state.description}" />\n`;
-    if (state.ogUrl) html += `<meta property="og:url" content="${state.ogUrl}" />\n`;
-    if (state.ogType) html += `<meta property="og:type" content="${state.ogType}" />\n`;
-    if (state.ogImage) html += `<meta property="og:image" content="${state.ogImage}" />\n`;
-    if (state.ogSiteName) html += `<meta property="og:site_name" content="${state.ogSiteName}" />\n`;
+    if (ogUrl) tags.push(`<meta property="og:url" content="${ogUrl}" />`);
+    if (ogType) tags.push(`<meta property="og:type" content="${ogType}" />`);
+    if (title) tags.push(`<meta property="og:title" content="${title}" />`);
+    if (description) tags.push(`<meta property="og:description" content="${description}" />`);
+    if (ogImage) tags.push(`<meta property="og:image" content="${ogImage}" />`);
+    if (ogImageAlt) tags.push(`<meta property="og:image:alt" content="${ogImageAlt}" />`);
+    if (ogLocale) tags.push(`<meta property="og:locale" content="${ogLocale}" />`);
 
     // Twitter Card Tags
-    if (state.twitterCard) html += `<meta name="twitter:card" content="${state.twitterCard}" />\n`;
-    if (state.twitterSite) html += `<meta name="twitter:site" content="${state.twitterSite}" />\n`;
-    if (state.twitterCreator) html += `<meta name="twitter:creator" content="${state.twitterCreator}" />\n`;
-    if (state.twitterTitle || state.ogTitle || state.title) html += `<meta name="twitter:title" content="${state.twitterTitle || state.ogTitle || state.title}" />\n`;
-    if (state.twitterDescription || state.ogDescription || state.description) html += `<meta name="twitter:description" content="${state.twitterDescription || state.ogDescription || state.description}" />\n`;
-    if (state.twitterImage || state.ogImage) html += `<meta name="twitter:image" content="${state.twitterImage || state.ogImage}" />\n`;
+    if (twitterCard) tags.push(`<meta name="twitter:card" content="${twitterCard}" />`);
+    if (twitterSite) tags.push(`<meta name="twitter:site" content="${twitterSite}" />`);
+    if (twitterCreator) tags.push(`<meta name="twitter:creator" content="${twitterCreator}" />`);
+    if (title) tags.push(`<meta name="twitter:title" content="${title}" />`);
+    if (description) tags.push(`<meta name="twitter:description" content="${description}" />`);
+    const finalTwitterImage = twitterImage || ogImage;
+    if (finalTwitterImage) tags.push(`<meta name="twitter:image" content="${finalTwitterImage}" />`);
+    if (twitterImageAlt) tags.push(`<meta name="twitter:image:alt" content="${twitterImageAlt}" />`);
 
-    setGeneratedHtml(html.trim());
-  }, [state]);
+
+    setGeneratedMetaTags(tags.join('\n'));
+  }, [title, description, keywords, author, viewport, ogUrl, ogType, ogImage, ogImageAlt, ogLocale, twitterCard, twitterSite, twitterCreator, twitterImage, twitterImageAlt]);
 
   useEffect(() => {
     generateMetaTags();
-  }, [state, generateMetaTags]);
+  }, [generateMetaTags]);
 
   const copyToClipboard = () => {
-    if (generatedHtml) {
-      navigator.clipboard.writeText(generatedHtml);
-      toast.success("Meta tags copied to clipboard!");
-    } else {
-      toast.error("No meta tags to copy.");
-    }
+    navigator.clipboard.writeText(generatedMetaTags);
+    toast.success('Meta tags copied to clipboard!');
   };
 
-  const resetFields = () => {
-    setState(defaultState);
-    toast.success("Fields reset to default!");
+  const renderOgPreview = () => {
+    const displayTitle = title || 'Your Page Title';
+    const displayDescription = description || 'A compelling description of your page content.';
+    const displayImage = ogImage || 'https://via.placeholder.com/1200x630?text=Open+Graph+Image';
+    const displayUrl = ogUrl || 'https://yourwebsite.com/page';
+
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
+        {ogImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={displayImage} alt={ogImageAlt || displayTitle} className="w-full h-48 object-cover" />
+        )}
+        <div className="p-4">
+          <p className="text-xs text-slate-400 mb-1">{new URL(displayUrl).hostname}</p>
+          <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-1">{displayTitle}</h3>
+          <p className="text-sm text-slate-300 line-clamp-2">{displayDescription}</p>
+        </div>
+      </div>
+    );
   };
 
-  // Helper to truncate text for preview
-  const truncate = (text: string, length: number) => {
-    if (!text) return '';
-    return text.length > length ? text.substring(0, length) + '...' : text;
+  const renderTwitterPreview = () => {
+    const displayTitle = title || 'Your Page Title';
+    const displayDescription = description || 'A compelling description of your page content.';
+    const displayImage = twitterImage || ogImage || 'https://via.placeholder.com/600x314?text=Twitter+Image';
+    const displaySite = twitterSite || '@yourhandle';
+
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
+        {twitterCard === 'summary_large_image' && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={displayImage} alt={twitterImageAlt || displayTitle} className="w-full h-48 object-cover" />
+        )}
+        <div className="p-4">
+          <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-1">{displayTitle}</h3>
+          <p className="text-sm text-slate-300 line-clamp-2">{displayDescription}</p>
+          <p className="text-xs text-slate-400 mt-2">{displaySite}</p>
+        </div>
+      </div>
+    );
   };
 
-  const ogPreviewTitle = state.ogTitle || state.title || "Your Page Title";
-  const ogPreviewDescription = state.ogDescription || state.description || "A short description of your page content.";
-  const ogPreviewUrl = state.ogUrl || "https://example.com/your-page";
-  const ogPreviewImage = state.ogImage || "https://via.placeholder.com/1200x630?text=Open+Graph+Image";
-  const ogPreviewSiteName = state.ogSiteName || "Your Website Name";
-
-  const twitterPreviewTitle = state.twitterTitle || ogPreviewTitle;
-  const twitterPreviewDescription = state.twitterDescription || ogPreviewDescription;
-  const twitterPreviewImage = state.twitterImage || ogPreviewImage;
-  const twitterPreviewSite = state.twitterSite || "@YourTwitterHandle";
-  const twitterPreviewCreator = state.twitterCreator || "@YourCreatorHandle";
 
   return (
     <ToolPageWrapper
-      toolSlug={TOOL_SLUG}
-      toolName={TOOL_NAME}
-      description={TOOL_DESCRIPTION}
+      toolSlug={toolSlug}
+      toolName="Meta Tag Generator & OG Preview"
+      description="Generate essential meta tags and preview Open Graph & Twitter cards for SEO and social sharing."
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Input Section */}
-        <div className="flex flex-col gap-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Basic Meta Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-slate-200">Basic Meta Tags</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Basic Meta Tags</h2>
+            <div className="space-y-4">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+                <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-1">Page Title</label>
                 <input
                   type="text"
                   id="title"
-                  name="title"
-                  value={state.title}
-                  onChange={handleChange}
-                  placeholder="e.g., My Awesome Page"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., My Awesome Website"
+                />
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                <textarea
+                  id="description"
+                  rows={3}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g., Discover the best tools for developers."
+                ></textarea>
+              </div>
+              <div>
+                <label htmlFor="keywords" className="block text-sm font-medium text-slate-300 mb-1">Keywords (comma-separated)</label>
+                <input
+                  type="text"
+                  id="keywords"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="e.g., dev tools, web utilities, developer toolbox"
                 />
               </div>
               <div>
@@ -174,62 +171,10 @@ const MetaTagGeneratorPage: React.FC = () => {
                 <input
                   type="text"
                   id="author"
-                  name="author"
-                  value={state.author}
-                  onChange={handleChange}
-                  placeholder="e.g., John Doe"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={state.description}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="A concise summary of your page content for search engines."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                ></textarea>
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="keywords" className="block text-sm font-medium text-slate-300 mb-1">Keywords</label>
-                <input
-                  type="text"
-                  id="keywords"
-                  name="keywords"
-                  value={state.keywords}
-                  onChange={handleChange}
-                  placeholder="e.g., seo, web development, tools"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label htmlFor="robots" className="block text-sm font-medium text-slate-300 mb-1">Robots</label>
-                <select
-                  id="robots"
-                  name="robots"
-                  value={state.robots}
-                  onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                >
-                  <option value="index, follow">index, follow</option>
-                  <option value="noindex, follow">noindex, follow</option>
-                  <option value="index, nofollow">index, nofollow</option>
-                  <option value="noindex, nofollow">noindex, nofollow</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="charset" className="block text-sm font-medium text-slate-300 mb-1">Charset</label>
-                <input
-                  type="text"
-                  id="charset"
-                  name="charset"
-                  value={state.charset}
-                  onChange={handleChange}
-                  placeholder="e.g., UTF-8"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  placeholder="e.g., DevForge Team"
                 />
               </div>
               <div>
@@ -237,23 +182,10 @@ const MetaTagGeneratorPage: React.FC = () => {
                 <input
                   type="text"
                   id="viewport"
-                  name="viewport"
-                  value={state.viewport}
-                  onChange={handleChange}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={viewport}
+                  onChange={(e) => setViewport(e.target.value)}
                   placeholder="e.g., width=device-width, initial-scale=1.0"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div>
-                <label htmlFor="refreshDelay" className="block text-sm font-medium text-slate-300 mb-1">Refresh Delay (seconds, optional)</label>
-                <input
-                  type="number"
-                  id="refreshDelay"
-                  name="refreshDelay"
-                  value={state.refreshDelay}
-                  onChange={handleChange}
-                  placeholder="e.g., 5"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                 />
               </div>
             </div>
@@ -261,52 +193,26 @@ const MetaTagGeneratorPage: React.FC = () => {
 
           {/* Open Graph Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-slate-200">Open Graph Tags (Facebook, LinkedIn, etc.)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="ogTitle" className="block text-sm font-medium text-slate-300 mb-1">OG Title</label>
-                <input
-                  type="text"
-                  id="ogTitle"
-                  name="ogTitle"
-                  value={state.ogTitle}
-                  onChange={handleChange}
-                  placeholder="e.g., My Page for Social Media"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                />
-              </div>
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Open Graph (OG) Tags</h2>
+            <div className="space-y-4">
               <div>
                 <label htmlFor="ogUrl" className="block text-sm font-medium text-slate-300 mb-1">OG URL</label>
                 <input
                   type="url"
                   id="ogUrl"
-                  name="ogUrl"
-                  value={state.ogUrl}
-                  onChange={handleChange}
-                  placeholder="e.g., https://example.com/my-page"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={ogUrl}
+                  onChange={(e) => setOgUrl(e.target.value)}
+                  placeholder="e.g., https://devforge.com/tools/meta-tag-generator"
                 />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="ogDescription" className="block text-sm font-medium text-slate-300 mb-1">OG Description</label>
-                <textarea
-                  id="ogDescription"
-                  name="ogDescription"
-                  value={state.ogDescription}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="A compelling description for social media shares."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                ></textarea>
               </div>
               <div>
                 <label htmlFor="ogType" className="block text-sm font-medium text-slate-300 mb-1">OG Type</label>
                 <select
                   id="ogType"
-                  name="ogType"
-                  value={state.ogType}
-                  onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={ogType}
+                  onChange={(e) => setOgType(e.target.value)}
                 >
                   <option value="website">website</option>
                   <option value="article">article</option>
@@ -323,27 +229,36 @@ const MetaTagGeneratorPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="ogSiteName" className="block text-sm font-medium text-slate-300 mb-1">OG Site Name</label>
-                <input
-                  type="text"
-                  id="ogSiteName"
-                  name="ogSiteName"
-                  value={state.ogSiteName}
-                  onChange={handleChange}
-                  placeholder="e.g., DevForge Tools"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div className="md:col-span-2">
                 <label htmlFor="ogImage" className="block text-sm font-medium text-slate-300 mb-1">OG Image URL</label>
                 <input
                   type="url"
                   id="ogImage"
-                  name="ogImage"
-                  value={state.ogImage}
-                  onChange={handleChange}
-                  placeholder="e.g., https://example.com/image.jpg (1200x630 recommended)"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={ogImage}
+                  onChange={(e) => setOgImage(e.target.value)}
+                  placeholder="e.g., https://devforge.com/images/og-image.jpg"
+                />
+              </div>
+              <div>
+                <label htmlFor="ogImageAlt" className="block text-sm font-medium text-slate-300 mb-1">OG Image Alt Text</label>
+                <input
+                  type="text"
+                  id="ogImageAlt"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={ogImageAlt}
+                  onChange={(e) => setOgImageAlt(e.target.value)}
+                  placeholder="e.g., DevForge Meta Tag Generator Tool"
+                />
+              </div>
+              <div>
+                <label htmlFor="ogLocale" className="block text-sm font-medium text-slate-300 mb-1">OG Locale</label>
+                <input
+                  type="text"
+                  id="ogLocale"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={ogLocale}
+                  onChange={(e) => setOgLocale(e.target.value)}
+                  placeholder="e.g., en_US"
                 />
               </div>
             </div>
@@ -351,21 +266,20 @@ const MetaTagGeneratorPage: React.FC = () => {
 
           {/* Twitter Card Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-slate-200">Twitter Card Tags</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Twitter Card Tags</h2>
+            <div className="space-y-4">
               <div>
                 <label htmlFor="twitterCard" className="block text-sm font-medium text-slate-300 mb-1">Twitter Card Type</label>
                 <select
                   id="twitterCard"
-                  name="twitterCard"
-                  value={state.twitterCard}
-                  onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={twitterCard}
+                  onChange={(e) => setTwitterCard(e.target.value)}
                 >
-                  <option value="summary">Summary Card</option>
-                  <option value="summary_large_image">Summary Card with Large Image</option>
-                  <option value="app">App Card</option>
-                  <option value="player">Player Card</option>
+                  <option value="summary">summary</option>
+                  <option value="summary_large_image">summary_large_image</option>
+                  <option value="app">app</option>
+                  <option value="player">player</option>
                 </select>
               </div>
               <div>
@@ -373,11 +287,10 @@ const MetaTagGeneratorPage: React.FC = () => {
                 <input
                   type="text"
                   id="twitterSite"
-                  name="twitterSite"
-                  value={state.twitterSite}
-                  onChange={handleChange}
-                  placeholder="e.g., @DevForgeTools"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={twitterSite}
+                  onChange={(e) => setTwitterSite(e.target.value)}
+                  placeholder="e.g., @DevForgeApp"
                 />
               </div>
               <div>
@@ -385,143 +298,67 @@ const MetaTagGeneratorPage: React.FC = () => {
                 <input
                   type="text"
                   id="twitterCreator"
-                  name="twitterCreator"
-                  value={state.twitterCreator}
-                  onChange={handleChange}
-                  placeholder="e.g., @YourHandle"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={twitterCreator}
+                  onChange={(e) => setTwitterCreator(e.target.value)}
+                  placeholder="e.g., @YourPersonalHandle"
                 />
               </div>
               <div>
-                <label htmlFor="twitterTitle" className="block text-sm font-medium text-slate-300 mb-1">Twitter Title</label>
-                <input
-                  type="text"
-                  id="twitterTitle"
-                  name="twitterTitle"
-                  value={state.twitterTitle}
-                  onChange={handleChange}
-                  placeholder="e.g., My Twitter Card Title"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="twitterDescription" className="block text-sm font-medium text-slate-300 mb-1">Twitter Description</label>
-                <textarea
-                  id="twitterDescription"
-                  name="twitterDescription"
-                  value={state.twitterDescription}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="A description for your Twitter card."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                ></textarea>
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="twitterImage" className="block text-sm font-medium text-slate-300 mb-1">Twitter Image URL</label>
+                <label htmlFor="twitterImage" className="block text-sm font-medium text-slate-300 mb-1">Twitter Image URL (optional, defaults to OG Image)</label>
                 <input
                   type="url"
                   id="twitterImage"
-                  name="twitterImage"
-                  value={state.twitterImage}
-                  onChange={handleChange}
-                  placeholder="e.g., https://example.com/twitter-image.jpg (800x418 for large)"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={twitterImage}
+                  onChange={(e) => setTwitterImage(e.target.value)}
+                  placeholder="e.g., https://devforge.com/images/twitter-image.jpg"
+                />
+              </div>
+              <div>
+                <label htmlFor="twitterImageAlt" className="block text-sm font-medium text-slate-300 mb-1">Twitter Image Alt Text</label>
+                <input
+                  type="text"
+                  id="twitterImageAlt"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={twitterImageAlt}
+                  onChange={(e) => setTwitterImageAlt(e.target.value)}
+                  placeholder="e.g., DevForge Meta Tag Generator Tool"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Output Section */}
-        <div className="flex flex-col gap-6">
-          {/* Generated HTML */}
+        {/* Output & Preview Section */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Generated Meta Tags */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-slate-200">Generated Meta Tags</h3>
-            <div className="relative">
-              <textarea
-                value={generatedHtml}
-                readOnly
-                rows={15}
-                className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 font-mono text-sm text-slate-100 resize-y min-h-[200px]"
-                placeholder="Generated meta tags will appear here..."
-              ></textarea>
-              <div className="absolute top-3 right-3 flex gap-2">
-                <button
-                  onClick={copyToClipboard}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-slate-50 transition-colors"
-                  title="Copy to Clipboard"
-                >
-                  <Copy size={16} />
-                </button>
-                <button
-                  onClick={resetFields}
-                  className="p-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-slate-50 transition-colors"
-                  title="Reset Fields"
-                >
-                  <RefreshCcw size={16} />
-                </button>
-              </div>
-            </div>
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Generated Meta Tags</h2>
+            <textarea
+              readOnly
+              rows={15}
+              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={generatedMetaTags}
+            ></textarea>
+            <button
+              onClick={copyToClipboard}
+              className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+            >
+              Copy to Clipboard
+            </button>
           </div>
 
           {/* OG Preview */}
           <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h3 className="text-xl font-semibold mb-4 text-slate-200">Open Graph Preview</h3>
-            <div className="flex flex-col gap-6">
-              {/* Generic Social Card Preview */}
-              <div className="bg-slate-900 rounded-lg overflow-hidden shadow-lg border border-slate-700">
-                <div className="relative w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm overflow-hidden">
-                  {ogPreviewImage && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={ogPreviewImage}
-                      alt="Open Graph Image"
-                      className="absolute inset-0 w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://via.placeholder.com/1200x630?text=Image+Load+Error";
-                        e.currentTarget.onerror = null;
-                      }}
-                    />
-                  )}
-                  {!ogPreviewImage && <span className="z-10">No OG Image</span>}
-                </div>
-                <div className="p-4">
-                  <p className="text-xs text-slate-400 uppercase mb-1">{truncate(ogPreviewUrl.replace(/(^\w+:|^)\/\//, '').split('/')[0], 40)}</p>
-                  <h4 className="text-lg font-semibold text-slate-100 mb-1">{truncate(ogPreviewTitle, 70)}</h4>
-                  <p className="text-sm text-slate-300 line-clamp-2">{truncate(ogPreviewDescription, 150)}</p>
-                </div>
-              </div>
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Open Graph Preview</h2>
+            {renderOgPreview()}
+          </div>
 
-              {/* Twitter Card Preview */}
-              <div className="bg-slate-900 rounded-lg overflow-hidden shadow-lg border border-slate-700">
-                {state.twitterCard === "summary_large_image" && (
-                  <div className="relative w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm overflow-hidden">
-                    {twitterPreviewImage && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={twitterPreviewImage}
-                        alt="Twitter Card Image"
-                        className="absolute inset-0 w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "https://via.placeholder.com/800x418?text=Image+Load+Error";
-                          e.currentTarget.onerror = null;
-                        }}
-                      />
-                    )}
-                    {!twitterPreviewImage && <span className="z-10">No Twitter Image</span>}
-                  </div>
-                )}
-                <div className="p-4">
-                  <h4 className="text-lg font-semibold text-slate-100 mb-1">{truncate(twitterPreviewTitle, 70)}</h4>
-                  <p className="text-sm text-slate-300 line-clamp-2 mb-2">{truncate(twitterPreviewDescription, 150)}</p>
-                  <div className="flex items-center text-xs text-slate-400">
-                    {twitterPreviewSite && <span>{twitterPreviewSite}</span>}
-                    {twitterPreviewSite && twitterPreviewCreator && <span className="mx-1">•</span>}
-                    {twitterPreviewCreator && <span>{twitterPreviewCreator}</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Twitter Preview */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Twitter Card Preview</h2>
+            {renderTwitterPreview()}
           </div>
         </div>
       </div>
