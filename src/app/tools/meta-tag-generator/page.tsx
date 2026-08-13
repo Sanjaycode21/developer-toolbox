@@ -4,215 +4,306 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
+import { Copy, Star, StarOff } from 'lucide-react';
 
-const MetaTagGeneratorPage: React.FC = () => {
+const MetaTagGeneratorPage = () => {
   const toolSlug = "meta-tag-generator";
-  const { addToHistory } = useToolStore();
+  const { addToHistory, addFavorite, removeFavorite, isFavorite } = useToolStore();
 
+  // State for basic meta tags
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [keywords, setKeywords] = useState('');
   const [author, setAuthor] = useState('');
+  const [robotsIndex, setRobotsIndex] = useState(true);
+  const [robotsFollow, setRobotsFollow] = useState(true);
+  const [charset, setCharset] = useState('UTF-8');
   const [viewport, setViewport] = useState('width=device-width, initial-scale=1.0');
+  const [refreshEnabled, setRefreshEnabled] = useState(false);
+  const [refreshDelay, setRefreshDelay] = useState(5); // seconds
 
-  // Open Graph (OG) Tags
+  // State for Open Graph tags
+  const [ogTitle, setOgTitle] = useState('');
+  const [ogDescription, setOgDescription] = useState('');
+  const [ogImageUrl, setOgImageUrl] = useState('');
   const [ogUrl, setOgUrl] = useState('');
   const [ogType, setOgType] = useState('website');
-  const [ogImage, setOgImage] = useState('');
-  const [ogImageAlt, setOgImageAlt] = useState('');
+  const [ogSiteName, setOgSiteName] = useState('');
   const [ogLocale, setOgLocale] = useState('en_US');
 
-  // Twitter Card Tags
+  // State for Twitter Card tags
   const [twitterCard, setTwitterCard] = useState('summary_large_image');
   const [twitterSite, setTwitterSite] = useState('');
   const [twitterCreator, setTwitterCreator] = useState('');
-  const [twitterImage, setTwitterImage] = useState('');
-  const [twitterImageAlt, setTwitterImageAlt] = useState('');
+  const [twitterTitle, setTwitterTitle] = useState('');
+  const [twitterDescription, setTwitterDescription] = useState('');
+  const [twitterImageUrl, setTwitterImageUrl] = useState('');
 
-  const [generatedMetaTags, setGeneratedMetaTags] = useState('');
+  // Generated HTML
+  const [generatedHtml, setGeneratedHtml] = useState('');
 
   useEffect(() => {
     addToHistory(toolSlug);
   }, [addToHistory, toolSlug]);
 
-  const generateMetaTags = useCallback(() => {
-    let tags = [];
+  const generateMetaTagsHtml = useCallback(() => {
+    let html = '';
 
     // Basic Meta Tags
-    if (title) tags.push(`<title>${title}</title>`);
-    if (description) tags.push(`<meta name="description" content="${description}" />`);
-    if (keywords) tags.push(`<meta name="keywords" content="${keywords}" />`);
-    if (author) tags.push(`<meta name="author" content="${author}" />`);
-    if (viewport) tags.push(`<meta name="viewport" content="${viewport}" />`);
+    if (charset) html += `<meta charset="${charset}" />\n`;
+    if (viewport) html += `<meta name="viewport" content="${viewport}" />\n`;
+    if (title) html += `<title>${title}</title>\n`; // Title is not a meta tag, but usually goes here
+    if (description) html += `<meta name="description" content="${description}" />\n`;
+    if (keywords) html += `<meta name="keywords" content="${keywords}" />\n`;
+    if (author) html += `<meta name="author" content="${author}" />\n`;
+
+    const robotsContent = [];
+    if (robotsIndex) robotsContent.push('index'); else robotsContent.push('noindex');
+    if (robotsFollow) robotsContent.push('follow'); else robotsContent.push('nofollow');
+    html += `<meta name="robots" content="${robotsContent.join(', ')}" />\n`;
+
+    if (refreshEnabled && refreshDelay > 0) {
+      html += `<meta http-equiv="refresh" content="${refreshDelay}" />\n`;
+    }
 
     // Open Graph Tags
-    if (ogUrl) tags.push(`<meta property="og:url" content="${ogUrl}" />`);
-    if (ogType) tags.push(`<meta property="og:type" content="${ogType}" />`);
-    if (title) tags.push(`<meta property="og:title" content="${title}" />`);
-    if (description) tags.push(`<meta property="og:description" content="${description}" />`);
-    if (ogImage) tags.push(`<meta property="og:image" content="${ogImage}" />`);
-    if (ogImageAlt) tags.push(`<meta property="og:image:alt" content="${ogImageAlt}" />`);
-    if (ogLocale) tags.push(`<meta property="og:locale" content="${ogLocale}" />`);
+    if (ogTitle) html += `<meta property="og:title" content="${ogTitle}" />\n`;
+    if (ogDescription) html += `<meta property="og:description" content="${ogDescription}" />\n`;
+    if (ogImageUrl) html += `<meta property="og:image" content="${ogImageUrl}" />\n`;
+    if (ogUrl) html += `<meta property="og:url" content="${ogUrl}" />\n`;
+    if (ogType) html += `<meta property="og:type" content="${ogType}" />\n`;
+    if (ogSiteName) html += `<meta property="og:site_name" content="${ogSiteName}" />\n`;
+    if (ogLocale) html += `<meta property="og:locale" content="${ogLocale}" />\n`;
 
     // Twitter Card Tags
-    if (twitterCard) tags.push(`<meta name="twitter:card" content="${twitterCard}" />`);
-    if (twitterSite) tags.push(`<meta name="twitter:site" content="${twitterSite}" />`);
-    if (twitterCreator) tags.push(`<meta name="twitter:creator" content="${twitterCreator}" />`);
-    if (title) tags.push(`<meta name="twitter:title" content="${title}" />`);
-    if (description) tags.push(`<meta name="twitter:description" content="${description}" />`);
-    const finalTwitterImage = twitterImage || ogImage;
-    if (finalTwitterImage) tags.push(`<meta name="twitter:image" content="${finalTwitterImage}" />`);
-    if (twitterImageAlt) tags.push(`<meta name="twitter:image:alt" content="${twitterImageAlt}" />`);
+    if (twitterCard) html += `<meta name="twitter:card" content="${twitterCard}" />\n`;
+    if (twitterSite) html += `<meta name="twitter:site" content="${twitterSite}" />\n`;
+    if (twitterCreator) html += `<meta name="twitter:creator" content="${twitterCreator}" />\n`;
+    if (twitterTitle) html += `<meta name="twitter:title" content="${twitterTitle}" />\n`;
+    if (twitterDescription) html += `<meta name="twitter:description" content="${twitterDescription}" />\n`;
+    if (twitterImageUrl) html += `<meta name="twitter:image" content="${twitterImageUrl}" />\n`;
 
-
-    setGeneratedMetaTags(tags.join('\n'));
-  }, [title, description, keywords, author, viewport, ogUrl, ogType, ogImage, ogImageAlt, ogLocale, twitterCard, twitterSite, twitterCreator, twitterImage, twitterImageAlt]);
+    setGeneratedHtml(html.trim());
+  }, [
+    title, description, keywords, author, robotsIndex, robotsFollow, charset, viewport,
+    refreshEnabled, refreshDelay,
+    ogTitle, ogDescription, ogImageUrl, ogUrl, ogType, ogSiteName, ogLocale,
+    twitterCard, twitterSite, twitterCreator, twitterTitle, twitterDescription, twitterImageUrl
+  ]);
 
   useEffect(() => {
-    generateMetaTags();
-  }, [generateMetaTags]);
+    generateMetaTagsHtml();
+  }, [generateMetaTagsHtml]);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedMetaTags);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedHtml);
     toast.success('Meta tags copied to clipboard!');
   };
 
-  const renderOgPreview = () => {
-    const displayTitle = title || 'Your Page Title';
-    const displayDescription = description || 'A compelling description of your page content.';
-    const displayImage = ogImage || 'https://via.placeholder.com/1200x630?text=Open+Graph+Image';
-    const displayUrl = ogUrl || 'https://yourwebsite.com/page';
-
-    return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
-        {ogImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={displayImage} alt={ogImageAlt || displayTitle} className="w-full h-48 object-cover" />
-        )}
-        <div className="p-4">
-          <p className="text-xs text-slate-400 mb-1">{new URL(displayUrl).hostname}</p>
-          <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-1">{displayTitle}</h3>
-          <p className="text-sm text-slate-300 line-clamp-2">{displayDescription}</p>
-        </div>
-      </div>
-    );
+  const toggleFavorite = () => {
+    if (isFavorite(toolSlug)) {
+      removeFavorite(toolSlug);
+      toast.success('Removed from favorites!');
+    } else {
+      addFavorite(toolSlug);
+      toast.success('Added to favorites!');
+    }
   };
 
-  const renderTwitterPreview = () => {
-    const displayTitle = title || 'Your Page Title';
-    const displayDescription = description || 'A compelling description of your page content.';
-    const displayImage = twitterImage || ogImage || 'https://via.placeholder.com/600x314?text=Twitter+Image';
-    const displaySite = twitterSite || '@yourhandle';
+  const FavoriteIcon = isFavorite(toolSlug) ? Star : StarOff;
 
-    return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
-        {twitterCard === 'summary_large_image' && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={displayImage} alt={twitterImageAlt || displayTitle} className="w-full h-48 object-cover" />
-        )}
-        <div className="p-4">
-          <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-1">{displayTitle}</h3>
-          <p className="text-sm text-slate-300 line-clamp-2">{displayDescription}</p>
-          <p className="text-xs text-slate-400 mt-2">{displaySite}</p>
-        </div>
-      </div>
-    );
-  };
-
+  const defaultOgImage = "https://via.placeholder.com/1200x630?text=Open+Graph+Image";
+  const defaultTwitterImage = "https://via.placeholder.com/800x418?text=Twitter+Card+Image";
 
   return (
     <ToolPageWrapper
       toolSlug={toolSlug}
       toolName="Meta Tag Generator & OG Preview"
-      description="Generate essential meta tags and preview Open Graph & Twitter cards for SEO and social sharing."
+      description="Generate essential meta tags for SEO and preview how your content will appear on social media."
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         {/* Input Section */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Basic Meta Tags */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">Basic Meta Tags</h2>
+        <div className="flex-1 space-y-6">
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4 flex items-center justify-between">
+              Basic Meta Tags
+              <button
+                onClick={toggleFavorite}
+                className="p-2 rounded-full text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
+                aria-label={isFavorite(toolSlug) ? "Remove from favorites" : "Add to favorites"}
+              >
+                <FavoriteIcon size={20} fill={isFavorite(toolSlug) ? "#6366f1" : "none"} stroke={isFavorite(toolSlug) ? "#6366f1" : "currentColor"} />
+              </button>
+            </h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-1">Page Title</label>
+                <label htmlFor="title" className="block text-sm font-medium text-slate-400 mb-1">Page Title</label>
                 <input
                   type="text"
                   id="title"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., My Awesome Website"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                <label htmlFor="description" className="block text-sm font-medium text-slate-400 mb-1">Description</label>
                 <textarea
                   id="description"
-                  rows={3}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g., Discover the best tools for developers."
+                  rows={3}
+                  placeholder="A brief summary of your page content."
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 ></textarea>
               </div>
               <div>
-                <label htmlFor="keywords" className="block text-sm font-medium text-slate-300 mb-1">Keywords (comma-separated)</label>
+                <label htmlFor="keywords" className="block text-sm font-medium text-slate-400 mb-1">Keywords (comma-separated)</label>
                 <input
                   type="text"
                   id="keywords"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={keywords}
                   onChange={(e) => setKeywords(e.target.value)}
-                  placeholder="e.g., dev tools, web utilities, developer toolbox"
+                  placeholder="e.g., web development, tools, generator"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="author" className="block text-sm font-medium text-slate-300 mb-1">Author</label>
+                <label htmlFor="author" className="block text-sm font-medium text-slate-400 mb-1">Author</label>
                 <input
                   type="text"
                   id="author"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="e.g., DevForge Team"
+                  placeholder="e.g., John Doe"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="robotsIndex"
+                    checked={robotsIndex}
+                    onChange={(e) => setRobotsIndex(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500"
+                  />
+                  <label htmlFor="robotsIndex" className="ml-2 text-sm text-slate-300">Index</label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="robotsFollow"
+                    checked={robotsFollow}
+                    onChange={(e) => setRobotsFollow(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500"
+                  />
+                  <label htmlFor="robotsFollow" className="ml-2 text-sm text-slate-300">Follow</label>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="charset" className="block text-sm font-medium text-slate-400 mb-1">Charset</label>
+                <input
+                  type="text"
+                  id="charset"
+                  value={charset}
+                  onChange={(e) => setCharset(e.target.value)}
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="viewport" className="block text-sm font-medium text-slate-300 mb-1">Viewport</label>
+                <label htmlFor="viewport" className="block text-sm font-medium text-slate-400 mb-1">Viewport</label>
                 <input
                   type="text"
                   id="viewport"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={viewport}
                   onChange={(e) => setViewport(e.target.value)}
-                  placeholder="e.g., width=device-width, initial-scale=1.0"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="refreshEnabled"
+                    checked={refreshEnabled}
+                    onChange={(e) => setRefreshEnabled(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500"
+                  />
+                  <label htmlFor="refreshEnabled" className="ml-2 text-sm text-slate-300">Enable Refresh</label>
+                </div>
+                {refreshEnabled && (
+                  <div className="flex items-center">
+                    <label htmlFor="refreshDelay" className="text-sm font-medium text-slate-400 mr-2">Delay (s)</label>
+                    <input
+                      type="number"
+                      id="refreshDelay"
+                      value={refreshDelay}
+                      onChange={(e) => setRefreshDelay(Number(e.target.value))}
+                      min="1"
+                      className="w-20 p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Open Graph Tags */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">Open Graph (OG) Tags</h2>
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Open Graph Tags</h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="ogUrl" className="block text-sm font-medium text-slate-300 mb-1">OG URL</label>
+                <label htmlFor="ogTitle" className="block text-sm font-medium text-slate-400 mb-1">OG Title</label>
                 <input
-                  type="url"
-                  id="ogUrl"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={ogUrl}
-                  onChange={(e) => setOgUrl(e.target.value)}
-                  placeholder="e.g., https://devforge.com/tools/meta-tag-generator"
+                  type="text"
+                  id="ogTitle"
+                  value={ogTitle}
+                  onChange={(e) => setOgTitle(e.target.value)}
+                  placeholder="e.g., My Awesome Website"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="ogType" className="block text-sm font-medium text-slate-300 mb-1">OG Type</label>
+                <label htmlFor="ogDescription" className="block text-sm font-medium text-slate-400 mb-1">OG Description</label>
+                <textarea
+                  id="ogDescription"
+                  value={ogDescription}
+                  onChange={(e) => setOgDescription(e.target.value)}
+                  rows={3}
+                  placeholder="A brief summary for social media."
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                ></textarea>
+              </div>
+              <div>
+                <label htmlFor="ogImageUrl" className="block text-sm font-medium text-slate-400 mb-1">OG Image URL</label>
+                <input
+                  type="url"
+                  id="ogImageUrl"
+                  value={ogImageUrl}
+                  onChange={(e) => setOgImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="ogUrl" className="block text-sm font-medium text-slate-400 mb-1">OG URL</label>
+                <input
+                  type="url"
+                  id="ogUrl"
+                  value={ogUrl}
+                  onChange={(e) => setOgUrl(e.target.value)}
+                  placeholder="https://example.com/page"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="ogType" className="block text-sm font-medium text-slate-400 mb-1">OG Type</label>
                 <select
                   id="ogType"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={ogType}
                   onChange={(e) => setOgType(e.target.value)}
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100"
                 >
                   <option value="website">website</option>
                   <option value="article">article</option>
@@ -222,59 +313,43 @@ const MetaTagGeneratorPage: React.FC = () => {
                   <option value="video.episode">video.episode</option>
                   <option value="video.tv_show">video.tv_show</option>
                   <option value="video.other">video.other</option>
-                  <option value="music.song">music.song</option>
-                  <option value="music.album">music.album</option>
-                  <option value="music.playlist">music.playlist</option>
-                  <option value="music.radio_station">music.radio_station</option>
                 </select>
               </div>
               <div>
-                <label htmlFor="ogImage" className="block text-sm font-medium text-slate-300 mb-1">OG Image URL</label>
-                <input
-                  type="url"
-                  id="ogImage"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={ogImage}
-                  onChange={(e) => setOgImage(e.target.value)}
-                  placeholder="e.g., https://devforge.com/images/og-image.jpg"
-                />
-              </div>
-              <div>
-                <label htmlFor="ogImageAlt" className="block text-sm font-medium text-slate-300 mb-1">OG Image Alt Text</label>
+                <label htmlFor="ogSiteName" className="block text-sm font-medium text-slate-400 mb-1">OG Site Name</label>
                 <input
                   type="text"
-                  id="ogImageAlt"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={ogImageAlt}
-                  onChange={(e) => setOgImageAlt(e.target.value)}
-                  placeholder="e.g., DevForge Meta Tag Generator Tool"
+                  id="ogSiteName"
+                  value={ogSiteName}
+                  onChange={(e) => setOgSiteName(e.target.value)}
+                  placeholder="e.g., DevForge"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="ogLocale" className="block text-sm font-medium text-slate-300 mb-1">OG Locale</label>
+                <label htmlFor="ogLocale" className="block text-sm font-medium text-slate-400 mb-1">OG Locale</label>
                 <input
                   type="text"
                   id="ogLocale"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={ogLocale}
                   onChange={(e) => setOgLocale(e.target.value)}
                   placeholder="e.g., en_US"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
             </div>
           </div>
 
-          {/* Twitter Card Tags */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">Twitter Card Tags</h2>
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Twitter Card Tags</h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="twitterCard" className="block text-sm font-medium text-slate-300 mb-1">Twitter Card Type</label>
+                <label htmlFor="twitterCard" className="block text-sm font-medium text-slate-400 mb-1">Twitter Card Type</label>
                 <select
                   id="twitterCard"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={twitterCard}
                   onChange={(e) => setTwitterCard(e.target.value)}
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100"
                 >
                   <option value="summary">summary</option>
                   <option value="summary_large_image">summary_large_image</option>
@@ -283,82 +358,124 @@ const MetaTagGeneratorPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label htmlFor="twitterSite" className="block text-sm font-medium text-slate-300 mb-1">Twitter Site (@handle)</label>
+                <label htmlFor="twitterSite" className="block text-sm font-medium text-slate-400 mb-1">Twitter Site (@username)</label>
                 <input
                   type="text"
                   id="twitterSite"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={twitterSite}
                   onChange={(e) => setTwitterSite(e.target.value)}
-                  placeholder="e.g., @DevForgeApp"
+                  placeholder="e.g., @devforge"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="twitterCreator" className="block text-sm font-medium text-slate-300 mb-1">Twitter Creator (@handle)</label>
+                <label htmlFor="twitterCreator" className="block text-sm font-medium text-slate-400 mb-1">Twitter Creator (@username)</label>
                 <input
                   type="text"
                   id="twitterCreator"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={twitterCreator}
                   onChange={(e) => setTwitterCreator(e.target.value)}
-                  placeholder="e.g., @YourPersonalHandle"
+                  placeholder="e.g., @johndoe"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="twitterImage" className="block text-sm font-medium text-slate-300 mb-1">Twitter Image URL (optional, defaults to OG Image)</label>
-                <input
-                  type="url"
-                  id="twitterImage"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={twitterImage}
-                  onChange={(e) => setTwitterImage(e.target.value)}
-                  placeholder="e.g., https://devforge.com/images/twitter-image.jpg"
-                />
-              </div>
-              <div>
-                <label htmlFor="twitterImageAlt" className="block text-sm font-medium text-slate-300 mb-1">Twitter Image Alt Text</label>
+                <label htmlFor="twitterTitle" className="block text-sm font-medium text-slate-400 mb-1">Twitter Title</label>
                 <input
                   type="text"
-                  id="twitterImageAlt"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={twitterImageAlt}
-                  onChange={(e) => setTwitterImageAlt(e.target.value)}
-                  placeholder="e.g., DevForge Meta Tag Generator Tool"
+                  id="twitterTitle"
+                  value={twitterTitle}
+                  onChange={(e) => setTwitterTitle(e.target.value)}
+                  placeholder="e.g., My Awesome Website"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="twitterDescription" className="block text-sm font-medium text-slate-400 mb-1">Twitter Description</label>
+                <textarea
+                  id="twitterDescription"
+                  value={twitterDescription}
+                  onChange={(e) => setTwitterDescription(e.target.value)}
+                  rows={3}
+                  placeholder="A brief summary for Twitter."
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
+                ></textarea>
+              </div>
+              <div>
+                <label htmlFor="twitterImageUrl" className="block text-sm font-medium text-slate-400 mb-1">Twitter Image URL</label>
+                <input
+                  type="url"
+                  id="twitterImageUrl"
+                  value={twitterImageUrl}
+                  onChange={(e) => setTwitterImageUrl(e.target.value)}
+                  placeholder="https://example.com/twitter-image.jpg"
+                  className="w-full p-2 bg-slate-800 border border-slate-700 rounded-md focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Output & Preview Section */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Generated Meta Tags */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">Generated Meta Tags</h2>
-            <textarea
-              readOnly
-              rows={15}
-              className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-50 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={generatedMetaTags}
-            ></textarea>
-            <button
-              onClick={copyToClipboard}
-              className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
-            >
-              Copy to Clipboard
-            </button>
+        {/* Output and Preview Section */}
+        <div className="flex-1 space-y-6">
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Generated Meta Tags</h2>
+            <div className="relative">
+              <textarea
+                readOnly
+                value={generatedHtml}
+                rows={15}
+                className="w-full p-3 bg-slate-800 border border-slate-700 rounded-md font-mono text-sm text-slate-200 focus:outline-none resize-none"
+              ></textarea>
+              <button
+                onClick={handleCopy}
+                className="absolute top-3 right-3 p-2 bg-slate-700 text-slate-300 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                aria-label="Copy to clipboard"
+              >
+                <Copy size={18} />
+              </button>
+            </div>
           </div>
 
-          {/* OG Preview */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">Open Graph Preview</h2>
-            {renderOgPreview()}
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Open Graph Preview</h2>
+            <div className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shadow-lg max-w-md mx-auto">
+              {ogImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={ogImageUrl} alt="OG Image" className="w-full h-48 object-cover" />
+              ) : (
+                <div className="w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
+                  <span className="text-center">No OG Image URL provided.<br/>Using placeholder.</span>
+                </div>
+              )}
+              <div className="p-4">
+                <p className="text-slate-400 text-xs mb-1 truncate">{ogUrl || 'https://example.com'}</p>
+                <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-1">{ogTitle || title || 'Your Page Title'}</h3>
+                <p className="text-slate-300 text-sm line-clamp-2">{ogDescription || description || 'A short description of your page content.'}</p>
+              </div>
+            </div>
           </div>
 
-          {/* Twitter Preview */}
-          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">Twitter Card Preview</h2>
-            {renderTwitterPreview()}
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-200 mb-4">Twitter Card Preview</h2>
+            <div className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shadow-lg max-w-md mx-auto">
+              {(twitterCard === 'summary_large_image' || twitterCard === 'summary') && (twitterImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={twitterImageUrl} alt="Twitter Image" className="w-full h-48 object-cover" />
+              ) : (
+                <div className="w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
+                  <span className="text-center">No Twitter Image URL provided.<br/>Using placeholder.</span>
+                </div>
+              ))}
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-1">{twitterTitle || title || 'Your Page Title'}</h3>
+                <p className="text-slate-300 text-sm line-clamp-2">{twitterDescription || description || 'A short description of your page content.'}</p>
+                <p className="text-slate-400 text-xs mt-2">
+                  {twitterCreator ? `By ${twitterCreator}` : ''} {twitterSite ? `on ${twitterSite}` : ''}
+                  {(!twitterCreator && !twitterSite) && 'By @username on Your Site'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
