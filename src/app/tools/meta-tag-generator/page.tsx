@@ -1,10 +1,113 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
 import { Copy, RefreshCcw } from 'lucide-react';
+
+// Helper component for input fields
+const InputField: React.FC<{
+  label: string;
+  id: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  type?: string;
+  textarea?: boolean;
+  rows?: number;
+  description?: string;
+}> = ({ label, id, value, onChange, placeholder, type = 'text', textarea = false, rows = 3, description }) => (
+  <div className="mb-4">
+    <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-1">
+      {label}
+    </label>
+    {textarea ? (
+      <textarea
+        id={id}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-y"
+      />
+    ) : (
+      <input
+        type={type}
+        id={id}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+      />
+    )}
+    {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+  </div>
+);
+
+// Helper component for select fields
+const SelectField: React.FC<{
+  label: string;
+  id: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options: { value: string; label: string }[];
+  description?: string;
+}> = ({ label, id, value, onChange, options, description }) => (
+  <div className="mb-4">
+    <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-1">
+      {label}
+    </label>
+    <select
+      id={id}
+      value={value}
+      onChange={onChange}
+      className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-slate-100 focus:ring-indigo-500 focus:border-indigo-500 text-sm appearance-none pr-8"
+      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1.5em 1.5em' }}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+  </div>
+);
+
+// Social Media Card Preview Component
+const SocialCardPreview: React.FC<{
+  title: string;
+  description: string;
+  imageUrl: string;
+  url: string;
+  type: 'og' | 'twitter';
+}> = ({ title, description, imageUrl, url, type }) => {
+  const defaultImage = "/next.svg"; // A placeholder image
+  const displayImage = imageUrl || defaultImage;
+
+  return (
+    <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg w-full max-w-md mx-auto">
+      <div className="relative w-full h-48 bg-slate-700 flex items-center justify-center overflow-hidden">
+        {displayImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={displayImage} alt="Preview Image" className="object-cover w-full h-full" />
+        ) : (
+          <span className="text-slate-400 text-sm">No Image Provided</span>
+        )}
+      </div>
+      <div className="p-4">
+        <p className="text-xs text-slate-500 mb-1 truncate">{url || 'https://example.com/your-page'}</p>
+        <h3 className="text-lg font-semibold text-slate-100 mb-1 line-clamp-2">{title || 'Your Page Title Here'}</h3>
+        <p className="text-sm text-slate-300 line-clamp-3">{description || 'A compelling description of your page content.'}</p>
+      </div>
+      <div className="p-4 border-t border-slate-700 bg-slate-700/30 text-xs text-slate-400">
+        {type === 'og' ? 'Open Graph Preview' : 'Twitter Card Preview'}
+      </div>
+    </div>
+  );
+};
+
 
 const MetaTagGeneratorPage: React.FC = () => {
   const toolSlug = "meta-tag-generator";
@@ -14,24 +117,27 @@ const MetaTagGeneratorPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [keywords, setKeywords] = useState('');
   const [author, setAuthor] = useState('');
+  const [viewport, setViewport] = useState('width=device-width, initial-scale=1.0');
+  const [charset, setCharset] = useState('UTF-8');
+
+  // Open Graph
+  const [ogTitle, setOgTitle] = useState('');
+  const [ogDescription, setOgDescription] = useState('');
   const [ogImage, setOgImage] = useState('');
   const [ogUrl, setOgUrl] = useState('');
   const [ogType, setOgType] = useState('website');
+  const [ogSiteName, setOgSiteName] = useState('');
+  const [ogLocale, setOgLocale] = useState('en_US');
+
+  // Twitter Card
   const [twitterCard, setTwitterCard] = useState('summary');
   const [twitterSite, setTwitterSite] = useState('');
   const [twitterCreator, setTwitterCreator] = useState('');
-  const [favicon, setFavicon] = useState('');
-  const [canonical, setCanonical] = useState('');
-  const [robotsIndex, setRobotsIndex] = useState(true);
-  const [robotsFollow, setRobotsFollow] = useState(true);
-  const [lang, setLang] = useState('en');
-  const [themeColor, setThemeColor] = useState('');
+  const [twitterTitle, setTwitterTitle] = useState('');
+  const [twitterDescription, setTwitterDescription] = useState('');
+  const [twitterImage, setTwitterImage] = useState('');
 
-  const [generatedMetaTags, setGeneratedMetaTags] = useState('');
-
-  // Use ogTitle and ogDescription for Twitter and OG if not explicitly set
-  const ogTitle = title || '';
-  const ogDescription = description || '';
+  const [generatedHtml, setGeneratedHtml] = useState('');
 
   useEffect(() => {
     addToHistory(toolSlug);
@@ -41,21 +147,12 @@ const MetaTagGeneratorPage: React.FC = () => {
     let tags = [];
 
     // Basic Meta Tags
+    tags.push(`<meta charset="${charset}" />`);
     if (title) tags.push(`<title>${title}</title>`);
     if (description) tags.push(`<meta name="description" content="${description}" />`);
     if (keywords) tags.push(`<meta name="keywords" content="${keywords}" />`);
     if (author) tags.push(`<meta name="author" content="${author}" />`);
-    if (themeColor) tags.push(`<meta name="theme-color" content="${themeColor}" />`);
-
-    // Robots
-    const robotsContent = `${robotsIndex ? 'index' : 'noindex'},${robotsFollow ? 'follow' : 'nofollow'}`;
-    tags.push(`<meta name="robots" content="${robotsContent}" />`);
-
-    // Canonical
-    if (canonical) tags.push(`<link rel="canonical" href="${canonical}" />`);
-
-    // Favicon
-    if (favicon) tags.push(`<link rel="icon" href="${favicon}" />`);
+    if (viewport) tags.push(`<meta name="viewport" content="${viewport}" />`);
 
     // Open Graph Tags
     if (ogTitle) tags.push(`<meta property="og:title" content="${ogTitle}" />`);
@@ -63,22 +160,22 @@ const MetaTagGeneratorPage: React.FC = () => {
     if (ogImage) tags.push(`<meta property="og:image" content="${ogImage}" />`);
     if (ogUrl) tags.push(`<meta property="og:url" content="${ogUrl}" />`);
     if (ogType) tags.push(`<meta property="og:type" content="${ogType}" />`);
-    if (lang) tags.push(`<meta property="og:locale" content="${lang}" />`);
+    if (ogSiteName) tags.push(`<meta property="og:site_name" content="${ogSiteName}" />`);
+    if (ogLocale) tags.push(`<meta property="og:locale" content="${ogLocale}" />`);
 
     // Twitter Card Tags
     if (twitterCard) tags.push(`<meta name="twitter:card" content="${twitterCard}" />`);
     if (twitterSite) tags.push(`<meta name="twitter:site" content="${twitterSite}" />`);
     if (twitterCreator) tags.push(`<meta name="twitter:creator" content="${twitterCreator}" />`);
-    if (ogTitle) tags.push(`<meta name="twitter:title" content="${ogTitle}" />`);
-    if (ogDescription) tags.push(`<meta name="twitter:description" content="${ogDescription}" />`);
-    if (ogImage) tags.push(`<meta name="twitter:image" content="${ogImage}" />`);
+    if (twitterTitle) tags.push(`<meta name="twitter:title" content="${twitterTitle}" />`);
+    if (twitterDescription) tags.push(`<meta name="twitter:description" content="${twitterDescription}" />`);
+    if (twitterImage) tags.push(`<meta name="twitter:image" content="${twitterImage}" />`);
 
-
-    setGeneratedMetaTags(tags.filter(Boolean).join('\n'));
+    setGeneratedHtml(tags.join('\n'));
   }, [
-    title, description, keywords, author, ogImage, ogUrl, ogType,
-    twitterCard, twitterSite, twitterCreator, favicon, canonical,
-    robotsIndex, robotsFollow, lang, themeColor, ogTitle, ogDescription
+    title, description, keywords, author, viewport, charset,
+    ogTitle, ogDescription, ogImage, ogUrl, ogType, ogSiteName, ogLocale,
+    twitterCard, twitterSite, twitterCreator, twitterTitle, twitterDescription, twitterImage
   ]);
 
   useEffect(() => {
@@ -86,256 +183,170 @@ const MetaTagGeneratorPage: React.FC = () => {
   }, [generateMetaTags]);
 
   const handleCopy = () => {
-    if (generatedMetaTags) {
-      navigator.clipboard.writeText(generatedMetaTags);
-      toast.success('Meta tags copied to clipboard!');
-    } else {
-      toast.error('No meta tags to copy.');
-    }
+    navigator.clipboard.writeText(generatedHtml);
+    toast.success('Meta tags copied to clipboard!');
   };
 
-  const handleClear = () => {
+  const handleReset = () => {
     setTitle('');
     setDescription('');
     setKeywords('');
     setAuthor('');
+    setViewport('width=device-width, initial-scale=1.0');
+    setCharset('UTF-8');
+
+    setOgTitle('');
+    setOgDescription('');
     setOgImage('');
     setOgUrl('');
     setOgType('website');
+    setOgSiteName('');
+    setOgLocale('en_US');
+
     setTwitterCard('summary');
     setTwitterSite('');
     setTwitterCreator('');
-    setFavicon('');
-    setCanonical('');
-    setRobotsIndex(true);
-    setRobotsFollow(true);
-    setLang('en');
-    setThemeColor('');
-    toast.success('All fields cleared!');
+    setTwitterTitle('');
+    setTwitterDescription('');
+    setTwitterImage('');
+
+    toast.success('All fields reset!');
   };
 
-  const InputField: React.FC<{
-    label: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-    placeholder?: string;
-    type?: string;
-    textarea?: boolean;
-    selectOptions?: { value: string; label: string }[];
-  }> = ({ label, value, onChange, placeholder, type = 'text', textarea = false, selectOptions }) => (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-slate-300">{label}</label>
-      {textarea ? (
-        <textarea
-          className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          rows={3}
-        />
-      ) : selectOptions ? (
-        <div className="relative">
-          <select
-            className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors appearance-none pr-8"
-            value={value}
-            onChange={onChange}
-          >
-            {selectOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-          </div>
-        </div>
-      ) : (
-        <input
-          type={type}
-          className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-        />
-      )}
-    </div>
-  );
+  // Determine preview content
+  const previewTitle = ogTitle || title;
+  const previewDescription = ogDescription || description;
+  const previewImageUrl = ogImage;
+  const previewUrl = ogUrl;
 
-  const CheckboxField: React.FC<{
-    label: string;
-    checked: boolean;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  }> = ({ label, checked, onChange }) => (
-    <div className="flex items-center gap-2">
-      <input
-        type="checkbox"
-        className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500"
-        checked={checked}
-        onChange={onChange}
-      />
-      <label className="text-sm text-slate-300">{label}</label>
-    </div>
-  );
-
-  const OgPreviewCard: React.FC<{
-    title: string;
-    description: string;
-    imageUrl: string;
-    url: string;
-  }> = ({ title, description, imageUrl, url }) => (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg max-w-md w-full">
-      {imageUrl && (
-        <div className="h-48 bg-slate-700 flex items-center justify-center overflow-hidden">
-          <img src={imageUrl} alt="Open Graph Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/400x200?text=Image+Not+Found')} />
-        </div>
-      )}
-      <div className="p-4">
-        <div className="text-xs text-slate-400 mb-1">{new URL(url || 'https://example.com').hostname}</div>
-        <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-2">{title || 'Your Page Title'}</h3>
-        <p className="text-sm text-slate-300 line-clamp-3">{description || 'A short description of your page content.'}</p>
-      </div>
-    </div>
-  );
-
-  const TwitterPreviewCard: React.FC<{
-    title: string;
-    description: string;
-    imageUrl: string;
-    site: string;
-    cardType: string;
-  }> = ({ title, description, imageUrl, site, cardType }) => {
-    const displayImage = (cardType === 'summary_large_image' || cardType === 'summary') && imageUrl ? imageUrl : '';
-    return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg max-w-md w-full">
-        {displayImage && (
-          <div className="h-48 bg-slate-700 flex items-center justify-center overflow-hidden">
-            <img src={displayImage} alt="Twitter Card Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/400x200?text=Image+Not+Found')} />
-          </div>
-        )}
-        <div className="p-4">
-          <div className="text-xs text-slate-400 mb-1">{site || '@yourwebsite'}</div>
-          <h3 className="text-lg font-semibold text-slate-50 mb-1 line-clamp-2">{title || 'Your Page Title'}</h3>
-          <p className="text-sm text-slate-300 line-clamp-3">{description || 'A short description of your page content.'}</p>
-        </div>
-      </div>
-    );
-  };
-
+  const twitterPreviewTitle = twitterTitle || ogTitle || title;
+  const twitterPreviewDescription = twitterDescription || ogDescription || description;
+  const twitterPreviewImageUrl = twitterImage || ogImage;
+  const twitterPreviewUrl = ogUrl; // Twitter often uses the OG URL
 
   return (
     <ToolPageWrapper
       toolSlug={toolSlug}
       toolName="Meta Tag Generator & OG Preview"
-      description="Generate essential meta tags for SEO and social media, and preview how your content will appear."
+      description="Generate essential HTML meta tags and preview Open Graph & Twitter cards for social sharing."
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Input Section */}
-        <div className="flex flex-col gap-6">
-          <h2 className="text-xl font-semibold text-slate-200">Meta Tag Inputs</h2>
+        <div className="lg:col-span-2">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">Meta Tag Inputs</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Page Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Awesome Page" />
-            <InputField label="Author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="e.g., John Doe" />
-            <InputField label="Keywords (comma-separated)" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="e.g., seo, meta, generator" />
-            <InputField label="Canonical URL" value={canonical} onChange={(e) => setCanonical(e.target.value)} placeholder="e.g., https://example.com/page" type="url" />
-            <InputField label="Favicon URL" value={favicon} onChange={(e) => setFavicon(e.target.value)} placeholder="e.g., https://example.com/favicon.ico" type="url" />
-            <InputField label="Language (e.g., en, es)" value={lang} onChange={(e) => setLang(e.target.value)} placeholder="e.g., en" />
-            <InputField label="Theme Color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} placeholder="e.g., #4F46E5" type="color" />
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 mb-6">
+            <h3 className="text-lg font-medium text-slate-200 mb-3">Basic Meta Tags</h3>
+            <InputField label="Page Title" id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Awesome Website" />
+            <InputField label="Description" id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A short, accurate summary of the page content." textarea rows={2} />
+            <InputField label="Keywords" id="keywords" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="comma, separated, keywords" />
+            <InputField label="Author" id="author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="e.g., John Doe" />
+            <InputField label="Viewport" id="viewport" value={viewport} onChange={(e) => setViewport(e.target.value)} placeholder="width=device-width, initial-scale=1.0" description="Controls how the page is displayed on mobile devices." />
+            <InputField label="Charset" id="charset" value={charset} onChange={(e) => setCharset(e.target.value)} placeholder="UTF-8" description="Character encoding for the document." />
           </div>
 
-          <InputField label="Page Description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A brief summary of your page content." textarea />
-
-          <div className="flex flex-col gap-4 p-4 bg-slate-800 border border-slate-700 rounded-lg">
-            <h3 className="text-lg font-medium text-slate-200">Open Graph (Social Media)</h3>
-            <InputField label="OG Title" value={ogTitle} onChange={(e) => setTitle(e.target.value)} placeholder="Defaults to Page Title" />
-            <InputField label="OG Description" value={ogDescription} onChange={(e) => setDescription(e.target.value)} placeholder="Defaults to Page Description" textarea />
-            <InputField label="OG Image URL" value={ogImage} onChange={(e) => setOgImage(e.target.value)} placeholder="e.g., https://example.com/image.jpg" type="url" />
-            <InputField label="OG URL" value={ogUrl} onChange={(e) => setOgUrl(e.target.value)} placeholder="e.g., https://example.com/page" type="url" />
-            <InputField
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 mb-6">
+            <h3 className="text-lg font-medium text-slate-200 mb-3">Open Graph (OG) Tags <span className="text-sm text-slate-500">(for Facebook, LinkedIn, etc.)</span></h3>
+            <InputField label="OG Title" id="ogTitle" value={ogTitle} onChange={(e) => setOgTitle(e.target.value)} placeholder="e.g., My Awesome Article" />
+            <InputField label="OG Description" id="ogDescription" value={ogDescription} onChange={(e) => setOgDescription(e.target.value)} placeholder="A description for social media shares." textarea rows={2} />
+            <InputField label="OG Image URL" id="ogImage" value={ogImage} onChange={(e) => setOgImage(e.target.value)} placeholder="https://example.com/image.jpg" type="url" description="Absolute URL to an image. Recommended size: 1200x630px." />
+            <InputField label="OG URL" id="ogUrl" value={ogUrl} onChange={(e) => setOgUrl(e.target.value)} placeholder="https://example.com/your-page" type="url" description="The canonical URL of your page." />
+            <SelectField
               label="OG Type"
+              id="ogType"
               value={ogType}
               onChange={(e) => setOgType(e.target.value)}
-              selectOptions={[
+              options={[
                 { value: 'website', label: 'Website' },
                 { value: 'article', label: 'Article' },
                 { value: 'book', label: 'Book' },
                 { value: 'profile', label: 'Profile' },
+                { value: 'video.movie', label: 'Video Movie' },
+                { value: 'video.episode', label: 'Video Episode' },
+                { value: 'video.tv_show', label: 'Video TV Show' },
+                { value: 'video.other', label: 'Video Other' },
               ]}
+              description="The type of content you are sharing."
             />
+            <InputField label="OG Site Name" id="ogSiteName" value={ogSiteName} onChange={(e) => setOgSiteName(e.target.value)} placeholder="e.g., DevForge" />
+            <InputField label="OG Locale" id="ogLocale" value={ogLocale} onChange={(e) => setOgLocale(e.target.value)} placeholder="en_US" />
           </div>
 
-          <div className="flex flex-col gap-4 p-4 bg-slate-800 border border-slate-700 rounded-lg">
-            <h3 className="text-lg font-medium text-slate-200">Twitter Card</h3>
-            <InputField
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 mb-6">
+            <h3 className="text-lg font-medium text-slate-200 mb-3">Twitter Card Tags <span className="text-sm text-slate-500">(for Twitter)</span></h3>
+            <SelectField
               label="Twitter Card Type"
+              id="twitterCard"
               value={twitterCard}
               onChange={(e) => setTwitterCard(e.target.value)}
-              selectOptions={[
+              options={[
                 { value: 'summary', label: 'Summary Card' },
                 { value: 'summary_large_image', label: 'Summary Card with Large Image' },
-                // { value: 'app', label: 'App Card' }, // Not implementing preview for these complex types
-                // { value: 'player', label: 'Player Card' },
+                { value: 'app', label: 'App Card' },
+                { value: 'player', label: 'Player Card' },
               ]}
+              description="The type of Twitter card to display."
             />
-            <InputField label="Twitter Site (@username)" value={twitterSite} onChange={(e) => setTwitterSite(e.target.value)} placeholder="e.g., @devforge" />
-            <InputField label="Twitter Creator (@username)" value={twitterCreator} onChange={(e) => setTwitterCreator(e.target.value)} placeholder="e.g., @yourhandle" />
+            <InputField label="Twitter Site" id="twitterSite" value={twitterSite} onChange={(e) => setTwitterSite(e.target.value)} placeholder="@yourtwitterhandle" description="The Twitter @username of the website." />
+            <InputField label="Twitter Creator" id="twitterCreator" value={twitterCreator} onChange={(e) => setTwitterCreator(e.target.value)} placeholder="@authortwitterhandle" description="The Twitter @username of the content creator." />
+            <InputField label="Twitter Title" id="twitterTitle" value={twitterTitle} onChange={(e) => setTwitterTitle(e.target.value)} placeholder="e.g., My Tweetable Article" />
+            <InputField label="Twitter Description" id="twitterDescription" value={twitterDescription} onChange={(e) => setTwitterDescription(e.target.value)} placeholder="A description for your tweet." textarea rows={2} />
+            <InputField label="Twitter Image URL" id="twitterImage" value={twitterImage} onChange={(e) => setTwitterImage(e.target.value)} placeholder="https://example.com/tweet-image.jpg" type="url" description="Absolute URL to an image. Recommended size: 1200x675px for large image cards." />
           </div>
 
-          <div className="flex flex-col gap-2 p-4 bg-slate-800 border border-slate-700 rounded-lg">
-            <h3 className="text-lg font-medium text-slate-200">Robots</h3>
-            <CheckboxField label="Index Page" checked={robotsIndex} onChange={(e) => setRobotsIndex(e.target.checked)} />
-            <CheckboxField label="Follow Links" checked={robotsFollow} onChange={(e) => setRobotsFollow(e.target.checked)} />
-          </div>
-
-          <div className="flex gap-4 mt-4">
+          <div className="flex justify-end gap-4 mt-6">
             <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors shadow-md"
+              onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 rounded-md hover:bg-slate-600 transition-colors text-sm"
             >
-              <Copy size={18} /> Copy Tags
-            </button>
-            <button
-              onClick={handleClear}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-md transition-colors shadow-md"
-            >
-              <RefreshCcw size={18} /> Clear All
+              <RefreshCcw size={16} /> Reset
             </button>
           </div>
         </div>
 
         {/* Output & Preview Section */}
-        <div className="flex flex-col gap-6">
-          <h2 className="text-xl font-semibold text-slate-200">Generated Meta Tags & Preview</h2>
+        <div className="lg:col-span-1">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">Output & Preview</h2>
 
-          <div className="flex flex-col gap-4">
-            <h3 className="text-lg font-medium text-slate-200">Open Graph Preview</h3>
-            <OgPreviewCard
-              title={ogTitle}
-              description={ogDescription}
-              imageUrl={ogImage}
-              url={ogUrl || 'https://example.com'}
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 mb-6">
+            <h3 className="text-lg font-medium text-slate-200 mb-3">Generated HTML Meta Tags</h3>
+            <div className="relative">
+              <textarea
+                readOnly
+                value={generatedHtml}
+                rows={15}
+                className="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-slate-100 font-mono text-sm resize-y"
+                placeholder="Generated meta tags will appear here..."
+              />
+              <button
+                onClick={handleCopy}
+                className="absolute top-2 right-2 p-2 bg-slate-700 text-slate-200 rounded-md hover:bg-slate-600 transition-colors"
+                aria-label="Copy to clipboard"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 mb-6">
+            <h3 className="text-lg font-medium text-slate-200 mb-3">Open Graph Preview</h3>
+            <SocialCardPreview
+              title={previewTitle}
+              description={previewDescription}
+              imageUrl={previewImageUrl}
+              url={previewUrl}
+              type="og"
             />
           </div>
 
-          <div className="flex flex-col gap-4">
-            <h3 className="text-lg font-medium text-slate-200">Twitter Card Preview</h3>
-            <TwitterPreviewCard
-              title={ogTitle}
-              description={ogDescription}
-              imageUrl={ogImage}
-              site={twitterSite}
-              cardType={twitterCard}
-            />
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <h3 className="text-lg font-medium text-slate-200">Generated HTML</h3>
-            <textarea
-              readOnly
-              value={generatedMetaTags}
-              className="w-full h-96 bg-slate-800 border border-slate-700 rounded-md p-4 text-sm text-slate-50 font-mono resize-y focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-              placeholder="Generated meta tags will appear here..."
+          <div className="bg-slate-900 p-6 rounded-lg border border-slate-800">
+            <h3 className="text-lg font-medium text-slate-200 mb-3">Twitter Card Preview</h3>
+            <SocialCardPreview
+              title={twitterPreviewTitle}
+              description={twitterPreviewDescription}
+              imageUrl={twitterPreviewImageUrl}
+              url={twitterPreviewUrl}
+              type="twitter"
             />
           </div>
         </div>
