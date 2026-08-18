@@ -1,4 +1,4 @@
-import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from 'lucide-react';
+import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from "lucide-react";
 
 export interface Tool {
   slug: string;
@@ -9,42 +9,50 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
-  // Formatting & Linting
+  // Formatting & Minification
   {
     slug: "json-formatter",
     name: "JSON Formatter",
-    category: "Formatting & Linting",
+    category: "Formatting & Minification",
     path: "/tools/json-formatter",
-    description: "Beautify and validate JSON data.",
-  },
-  {
-    slug: "html-formatter",
-    name: "HTML Formatter",
-    category: "Formatting & Linting",
-    path: "/tools/html-formatter",
-    description: "Clean up and format HTML code.",
-  },
-  {
-    slug: "sql-formatter",
-    name: "SQL Formatter",
-    category: "Formatting & Linting",
-    path: "/tools/sql-formatter",
-    description: "Format SQL queries for better readability.",
+    description: "Beautify or minify JSON data for better readability or smaller file size.",
   },
   {
     slug: "xml-formatter",
     name: "XML Formatter",
-    category: "Formatting & Linting",
+    category: "Formatting & Minification",
     path: "/tools/xml-formatter",
-    description: "Beautify and format XML data.",
+    description: "Format or minify XML data for improved readability and structure.",
+  },
+  {
+    slug: "html-formatter",
+    name: "HTML Formatter",
+    category: "Formatting & Minification",
+    path: "/tools/html-formatter",
+    description: "Clean up and format HTML code for consistency and readability.",
+  },
+  {
+    slug: "sql-formatter",
+    name: "SQL Formatter",
+    category: "Formatting & Minification",
+    path: "/tools/sql-formatter",
+    description: "Format SQL queries for better readability and debugging.",
   },
   {
     slug: "yaml-formatter",
     name: "YAML Formatter",
-    category: "Formatting & Linting",
+    category: "Formatting & Minification",
     path: "/tools/yaml-formatter",
-    description: "Format and validate YAML files.",
+    description: "Format or convert YAML data for improved readability and structure.",
   },
+  {
+    slug: "svg-optimizer-viewer",
+    name: "SVG Optimizer & Viewer",
+    category: "Formatting & Minification",
+    path: "/tools/svg-optimizer-viewer",
+    description: "Optimize SVG files to reduce size and view their content.",
+  },
+
   // Converters
   {
     slug: "base64-encoder-decoder",
@@ -58,153 +66,141 @@ export const tools: Tool[] = [
     name: "Base64 Image Encoder / Decoder",
     category: "Converters",
     path: "/tools/base64-image-encoder-decoder",
-    description: "Convert images to Base64 and vice-versa.",
-  },
-  {
-    slug: "csv-viewer-converter",
-    name: "CSV Viewer / Converter",
-    category: "Converters",
-    path: "/tools/csv-viewer-converter",
-    description: "View, edit, and convert CSV data.",
+    description: "Encode and decode images to/from Base64 strings.",
   },
   {
     slug: "unix-timestamp-epoch-converter",
     name: "Unix Timestamp & Epoch Converter",
     category: "Converters",
     path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice-versa.",
+    description: "Convert Unix timestamps to human-readable dates and vice versa.",
   },
   {
     slug: "case-converter",
     name: "Case Converter",
     category: "Converters",
     path: "/tools/case-converter",
-    description: "Convert text between different casing styles (e.g., camelCase, snake_case).",
+    description: "Convert text between various case formats (e.g., camelCase, snake_case).",
   },
+  {
+    slug: "csv-viewer-converter",
+    name: "CSV Viewer & Converter",
+    category: "Converters",
+    path: "/tools/csv-viewer-converter",
+    description: "View, edit, and convert CSV data to other formats like JSON or XML.",
+  },
+
   // Generators
   {
     slug: "hash-generator",
     name: "Hash Generator",
     category: "Generators",
     path: "/tools/hash-generator",
-    description: "Generate various cryptographic hashes (MD5, SHA1, SHA256, etc.).",
+    description: "Generate various cryptographic hashes (MD5, SHA1, SHA256, etc.) from text.",
   },
   {
-    slug: "uuid-generator",
-    name: "UUID Generator",
+    slug: "uuid-password-generator",
+    name: "UUID & Password Generator",
     category: "Generators",
-    path: "/tools/uuid-generator",
-    description: "Generate universally unique identifiers (UUIDs).",
-  },
-  {
-    slug: "password-generator",
-    name: "Password Generator",
-    category: "Generators",
-    path: "/tools/password-generator",
-    description: "Create strong, random passwords.",
+    path: "/tools/uuid-password-generator",
+    description: "Generate universally unique identifiers (UUIDs) and strong passwords.",
   },
   {
     slug: "lorem-ipsum-generator",
     name: "Lorem Ipsum Generator",
     category: "Generators",
     path: "/tools/lorem-ipsum-generator",
-    description: "Generate placeholder text for your designs and prototypes.",
+    description: "Generate placeholder text for your designs and layouts.",
   },
   {
-    slug: "css-shadow-generator",
-    name: "CSS Shadow Generator",
+    slug: "css-shadow-gradient-generator",
+    name: "CSS Shadow & Gradient Generator",
     category: "Generators",
-    path: "/tools/css-shadow-generator",
-    description: "Generate complex CSS box and text shadows with live preview.",
+    path: "/tools/css-shadow-gradient-generator",
+    description: "Generate complex CSS box shadows and gradient codes visually.",
   },
-  {
-    slug: "css-gradient-generator",
-    name: "CSS Gradient Generator",
-    category: "Generators",
-    path: "/tools/css-gradient-generator",
-    description: "Create beautiful CSS linear and radial gradients.",
-  },
-  // SEO Tools
   {
     slug: "meta-tag-generator",
     name: "Meta Tag Generator & OG Preview",
-    category: "SEO",
+    category: "SEO & Web",
     path: "/tools/meta-tag-generator",
-    description: "Generate meta tags for SEO and social media, with Open Graph and Twitter card previews.",
+    description: "Generate essential meta tags and preview Open Graph content for SEO and social media.",
   },
   {
     slug: "robots-txt-generator",
     name: "Robots.txt Generator",
-    category: "SEO",
+    category: "SEO & Web",
     path: "/tools/robots-txt-generator",
-    description: "Create a robots.txt file to manage crawler access.",
+    description: "Create a robots.txt file to manage search engine crawling.",
   },
   {
     slug: "sitemap-xml-generator",
     name: "Sitemap XML Generator",
-    category: "SEO",
+    category: "SEO & Web",
     path: "/tools/sitemap-xml-generator",
-    description: "Generate an XML sitemap for your website.",
+    description: "Generate an XML sitemap for your website to help search engines index your pages.",
   },
+
   // Web Utilities
   {
     slug: "jwt-decoder",
     name: "JWT Decoder",
     category: "Web Utilities",
     path: "/tools/jwt-decoder",
-    description: "Decode and inspect JSON Web Tokens.",
+    description: "Decode JSON Web Tokens to inspect their header, payload, and verify signature.",
+  },
+  {
+    slug: "url-encoder-decoder",
+    name: "URL Encoder / Decoder",
+    category: "Web Utilities",
+    path: "/tools/url-encoder-decoder",
+    description: "Encode and decode URL components.",
   },
   {
     slug: "markdown-live-preview",
     name: "Markdown Live Preview",
     category: "Web Utilities",
     path: "/tools/markdown-live-preview",
-    description: "Write Markdown and see the rendered HTML in real-time.",
+    description: "Write and preview Markdown in real-time.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
     category: "Web Utilities",
     path: "/tools/regex-tester-generator",
-    description: "Test and build regular expressions.",
+    description: "Test and generate regular expressions with a live preview.",
   },
   {
-    slug: "svg-optimizer-viewer",
-    name: "SVG Optimizer & Viewer",
+    slug: "color-picker",
+    name: "Color Picker",
     category: "Web Utilities",
-    path: "/tools/svg-optimizer-viewer",
-    description: "Optimize SVG files and preview their rendering.",
+    path: "/tools/color-picker",
+    description: "Select colors and get their HEX, RGB, HSL, and other formats.",
   },
+
   // Cryptography
   {
     slug: "hash-verifier",
     name: "Hash Verifier",
     category: "Cryptography",
     path: "/tools/hash-verifier",
-    description: "Verify the integrity of files using hash comparisons.",
+    description: "Verify the integrity of text or files using various hash algorithms.",
   },
-  // Color Tools
-  {
-    slug: "color-picker",
-    name: "Color Picker",
-    category: "Color Tools",
-    path: "/tools/color-picker",
-    description: "Select colors and get their HEX, RGB, HSL values.",
-  },
-  // Other
+
+  // DevForge Specific
   {
     slug: "favorites",
     name: "Favorites",
-    category: "Other",
+    category: "DevForge",
     path: "/tools/favorites",
-    description: "Your favorite tools for quick access.",
+    description: "Your most loved and frequently used tools, all in one place.",
   },
   {
     slug: "history",
     name: "History",
-    category: "Other",
+    category: "DevForge",
     path: "/tools/history",
-    description: "Recently used tools.",
+    description: "Recently used tools for quick access.",
   },
 ];
 
@@ -219,16 +215,15 @@ export function toolsByCategory(): Record<string, Tool[]> {
 }
 
 export function getToolBySlug(slug: string): Tool | undefined {
-  return tools.find((tool) => tool.slug === slug);
+  return tools.find(tool => tool.slug === slug);
 }
 
 export const categoryIcons: Record<string, React.ElementType> = {
-  "Formatting & Linting": Code,
-  "Converters": Binary,
+  "Formatting & Minification": Code,
+  "Converters": Layers,
   "Generators": Sparkles,
-  "SEO": Search,
   "Web Utilities": Terminal,
   "Cryptography": Shield,
-  "Color Tools": Palette,
-  "Other": Layers,
+  "SEO & Web": Search,
+  "DevForge": Settings,
 };
