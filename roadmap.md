@@ -70,3 +70,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 65: Implement Meta Tag Generator & OG Preview
 - [x] Day 66: Implement Meta Tag Generator & OG Preview
 - [x] Day 67: Implement Meta Tag Generator & OG Preview
+- [x] Day 68: Implement Meta Tag Generator & OG Preview

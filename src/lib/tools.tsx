@@ -1,4 +1,21 @@
-import { Code, Star, History, Palette, Layers, Settings, Terminal, Hash, Shield, FileText, Binary, Calendar, Sparkles, Clock, Key, Search } from "lucide-react";
+import {
+  Code,
+  Star,
+  History,
+  Palette,
+  Layers,
+  Settings,
+  Terminal,
+  Hash,
+  Shield,
+  FileText,
+  Binary,
+  Calendar,
+  Sparkles,
+  Clock,
+  Key,
+  Search,
+} from "lucide-react";
 
 export interface Tool {
   slug: string;
@@ -13,46 +30,46 @@ export const tools: Tool[] = [
   {
     slug: "favorites",
     name: "Favorites",
-    category: "General",
+    category: "Quick Access",
     path: "/tools/favorites",
-    description: "Your most loved and frequently used tools, all in one place.",
+    description: "Your most loved and frequently used tools.",
   },
   {
     slug: "history",
     name: "History",
-    category: "General",
+    category: "Quick Access",
     path: "/tools/history",
-    description: "Keep track of the tools you've used recently.",
+    description: "Recently used tools for quick navigation.",
   },
 
-  // Converters
+  // Converters & Encoders
   {
     slug: "base64-encoder-decoder",
     name: "Base64 Encoder / Decoder",
-    category: "Converters",
+    category: "Converters & Encoders",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
   },
   {
     slug: "base64-image-encoder-decoder",
     name: "Base64 Image Encoder / Decoder",
-    category: "Converters",
+    category: "Converters & Encoders",
     path: "/tools/base64-image-encoder-decoder",
-    description: "Encode and decode images to/from Base64.",
+    description: "Convert images to Base64 and vice-versa.",
   },
   {
     slug: "case-converter",
     name: "Case Converter",
-    category: "Converters",
+    category: "Converters & Encoders",
     path: "/tools/case-converter",
-    description: "Convert text to various case formats (e.g., camelCase, snake_case).",
+    description: "Convert text to different cases (e.g., uppercase, lowercase, camelCase).",
   },
   {
     slug: "unix-timestamp-epoch-converter",
     name: "Unix Timestamp & Epoch Converter",
-    category: "Converters",
+    category: "Converters & Encoders",
     path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice versa.",
+    description: "Convert Unix timestamps to human-readable dates and vice-versa.",
   },
 
   // Generators
@@ -61,14 +78,14 @@ export const tools: Tool[] = [
     name: "Hash Generator",
     category: "Generators",
     path: "/tools/hash-generator",
-    description: "Generate various cryptographic hashes (MD5, SHA-1, SHA-256, etc.).",
+    description: "Generate various hash types like MD5, SHA1, SHA256, etc.",
   },
   {
     slug: "uuid-password-generator",
     name: "UUID & Password Generator",
     category: "Generators",
     path: "/tools/uuid-password-generator",
-    description: "Generate universally unique identifiers (UUIDs) and strong passwords.",
+    description: "Generate strong passwords and UUIDs.",
   },
   {
     slug: "lorem-ipsum-generator",
@@ -78,25 +95,32 @@ export const tools: Tool[] = [
     description: "Generate placeholder text for your designs and prototypes.",
   },
   {
-    slug: "css-shadow-gradient-generator",
-    name: "CSS Shadow & Gradient Generator",
+    slug: "meta-tag-generator",
+    name: "Meta Tag Generator & OG Preview",
     category: "Generators",
-    path: "/tools/css-shadow-gradient-generator",
-    description: "Generate complex CSS box shadows and beautiful gradients with ease.",
+    path: "/tools/meta-tag-generator",
+    description: "Generate essential meta tags for SEO and social media, with an Open Graph preview.",
   },
   {
     slug: "robots-txt-generator",
     name: "Robots.txt Generator",
     category: "Generators",
     path: "/tools/robots-txt-generator",
-    description: "Create a robots.txt file to guide search engine crawlers.",
+    description: "Create a robots.txt file to manage crawler access.",
   },
   {
     slug: "sitemap-xml-generator",
     name: "Sitemap XML Generator",
     category: "Generators",
     path: "/tools/sitemap-xml-generator",
-    description: "Generate an XML sitemap for your website to improve SEO.",
+    description: "Generate an XML sitemap for your website.",
+  },
+  {
+    slug: "css-shadow-gradient-generator",
+    name: "CSS Shadow & Gradient Generator",
+    category: "Generators",
+    path: "/tools/css-shadow-gradient-generator",
+    description: "Generate complex CSS shadows and gradients with live preview.",
   },
 
   // Formatters
@@ -119,7 +143,7 @@ export const tools: Tool[] = [
     name: "HTML Formatter",
     category: "Formatters",
     path: "/tools/html-formatter",
-    description: "Beautify or minify HTML code.",
+    description: "Beautify or minify HTML markup.",
   },
   {
     slug: "sql-formatter",
@@ -142,14 +166,14 @@ export const tools: Tool[] = [
     name: "JWT Decoder",
     category: "Web Utilities",
     path: "/tools/jwt-decoder",
-    description: "Decode and inspect JSON Web Tokens (JWT).",
+    description: "Decode JWT tokens and inspect their contents.",
   },
   {
     slug: "url-encoder-decoder",
     name: "URL Encoder / Decoder",
     category: "Web Utilities",
     path: "/tools/url-encoder-decoder",
-    description: "Encode and decode URL components.",
+    description: "Encode and decode URLs.",
   },
   {
     slug: "markdown-live-preview",
@@ -157,20 +181,6 @@ export const tools: Tool[] = [
     category: "Web Utilities",
     path: "/tools/markdown-live-preview",
     description: "Write and preview Markdown in real-time.",
-  },
-  {
-    slug: "svg-optimizer-viewer",
-    name: "SVG Optimizer & Viewer",
-    category: "Web Utilities",
-    path: "/tools/svg-optimizer-viewer",
-    description: "Optimize SVG files and preview their rendering.",
-  },
-  {
-    slug: "color-picker",
-    name: "Color Picker",
-    category: "Web Utilities",
-    path: "/tools/color-picker",
-    description: "Select colors and get their HEX, RGB, HSL values.",
   },
   {
     slug: "regex-tester-generator",
@@ -187,20 +197,27 @@ export const tools: Tool[] = [
     description: "View, edit, and convert CSV data.",
   },
   {
-    slug: "hash-verifier",
-    name: "Hash Verifier",
+    slug: "svg-optimizer-viewer",
+    name: "SVG Optimizer & Viewer",
     category: "Web Utilities",
-    path: "/tools/hash-verifier",
-    description: "Verify the integrity of files using hash comparison.",
+    path: "/tools/svg-optimizer-viewer",
+    description: "Optimize SVG files and preview them.",
+  },
+  {
+    slug: "color-picker",
+    name: "Color Picker",
+    category: "Web Utilities",
+    path: "/tools/color-picker",
+    description: "Select colors and get their HEX, RGB, HSL values.",
   },
 
-  // SEO Tools
+  // Cryptography
   {
-    slug: "meta-tag-generator",
-    name: "Meta Tag Generator & OG Preview",
-    category: "SEO",
-    path: "/tools/meta-tag-generator",
-    description: "Generate essential meta tags and preview Open Graph (OG) social media cards.",
+    slug: "hash-verifier",
+    name: "Hash Verifier",
+    category: "Cryptography",
+    path: "/tools/hash-verifier",
+    description: "Verify the integrity of files using hash comparison.",
   },
 ];
 
@@ -220,13 +237,10 @@ export function getToolBySlug(slug: string): Tool | undefined {
 }
 
 export const categoryIcons: Record<string, React.ElementType> = {
-  General: Layers,
-  Converters: Shuffle, // Using Shuffle for converters
+  "Quick Access": Star,
+  "Converters & Encoders": Layers,
   Generators: Sparkles,
   Formatters: Code,
   "Web Utilities": Terminal,
-  SEO: Search, // Using Search for SEO
+  Cryptography: Shield,
 };
-
-// Add Shuffle icon to the import list
-import { Shuffle } from "lucide-react";
