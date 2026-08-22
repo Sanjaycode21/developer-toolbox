@@ -1,242 +1,368 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
-import { ToolPageWrapper } from "@/components/ToolPageWrapper";
-import { useToolStore } from "@/store/useToolStore";
-import toast from "react-hot-toast";
-import { Copy, Star, StarOff } from "lucide-react";
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { ToolPageWrapper } from '@/components/ToolPageWrapper';
+import { useToolStore } from '@/store/useToolStore';
+import toast from 'react-hot-toast';
+import { Copy } from 'lucide-react';
 
-const TOOL_SLUG = "meta-tag-generator";
-const TOOL_NAME = "Meta Tag Generator & OG Preview";
-const TOOL_DESCRIPTION = "Generate essential meta tags for SEO and social media, with an Open Graph preview.";
+// Reusable Input Component
+const Input = ({ label, id, value, onChange, placeholder, type = 'text', className = '' }: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  className?: string;
+}) => (
+  <div className="flex flex-col gap-1">
+    <label htmlFor={id} className="text-sm font-medium text-slate-300">
+      {label}
+    </label>
+    <input
+      type={type}
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors ${className}`}
+    />
+  </div>
+);
 
-export default function MetaTagGeneratorPage() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [keywords, setKeywords] = useState("");
-  const [author, setAuthor] = useState("");
-  const [ogTitle, setOgTitle] = useState("");
-  const [ogDescription, setOgDescription] = useState("");
-  const [ogImage, setOgImage] = useState("");
-  const [ogUrl, setOgUrl] = useState("");
-  const [twitterCard, setTwitterCard] = useState("summary");
-  const [twitterSite, setTwitterSite] = useState("");
-  const [twitterCreator, setTwitterCreator] = useState("");
-  const [twitterImage, setTwitterImage] = useState("");
+// Reusable Textarea Component
+const Textarea = ({ label, id, value, onChange, placeholder, rows = 3, className = '' }: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  className?: string;
+}) => (
+  <div className="flex flex-col gap-1">
+    <label htmlFor={id} className="text-sm font-medium text-slate-300">
+      {label}
+    </label>
+    <textarea
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      className={`w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors ${className}`}
+    ></textarea>
+  </div>
+);
 
-  const { addToHistory, addFavorite, removeFavorite, isFavorite } = useToolStore();
-  const isToolFavorite = isFavorite(TOOL_SLUG);
+// Reusable Select Component
+const Select = ({ label, id, value, onChange, options, className = '' }: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  className?: string;
+}) => (
+  <div className="flex flex-col gap-1">
+    <label htmlFor={id} className="text-sm font-medium text-slate-300">
+      {label}
+    </label>
+    <select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors appearance-none cursor-pointer ${className}`}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const MetaTagGeneratorPage = () => {
+  const SLUG = "meta-tag-generator";
+  const addToHistory = useToolStore((state) => state.addToHistory);
 
   useEffect(() => {
-    addToHistory(TOOL_SLUG);
+    addToHistory(SLUG);
   }, [addToHistory]);
 
+  // Basic Meta Tags
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [keywords, setKeywords] = useState('');
+  const [author, setAuthor] = useState('');
+  const [robotsIndex, setRobotsIndex] = useState('index');
+  const [robotsFollow, setRobotsFollow] = useState('follow');
+  const [charset, setCharset] = useState('UTF-8');
+  const [viewport, setViewport] = useState('width=device-width, initial-scale=1.0');
+  const [refreshDelay, setRefreshDelay] = useState('');
+  const [refreshUrl, setRefreshUrl] = useState('');
+
+  // Open Graph Tags
+  const [ogTitle, setOgTitle] = useState('');
+  const [ogDescription, setOgDescription] = useState('');
+  const [ogType, setOgType] = useState('website');
+  const [ogUrl, setOgUrl] = useState('');
+  const [ogImage, setOgImage] = useState('');
+  const [ogSiteName, setOgSiteName] = useState('');
+  const [ogLocale, setOgLocale] = useState('en_US');
+
+  // Twitter Card Tags
+  const [twitterCard, setTwitterCard] = useState('summary_large_image');
+  const [twitterSite, setTwitterSite] = useState('');
+  const [twitterCreator, setTwitterCreator] = useState('');
+  const [twitterTitle, setTwitterTitle] = useState('');
+  const [twitterDescription, setTwitterDescription] = useState('');
+  const [twitterImage, setTwitterImage] = useState('');
+
   const generateMetaTags = useCallback(() => {
-    let tags = "";
+    let tags: string[] = [];
+
+    // Title (not a meta tag, but essential for SEO)
+    if (title) tags.push(`<title>${title}</title>`);
 
     // Basic Meta Tags
-    if (title) tags += `<meta name="title" content="${title}" />\n`;
-    if (description) tags += `<meta name="description" content="${description}" />\n`;
-    if (keywords) tags += `<meta name="keywords" content="${keywords}" />\n`;
-    if (author) tags += `<meta name="author" content="${author}" />\n`;
-    tags += `<meta name="viewport" content="width=device-width, initial-scale=1" />\n`;
-    tags += `<meta charset="utf-8" />\n`;
+    if (charset) tags.push(`<meta charset="${charset}" />`);
+    if (viewport) tags.push(`<meta name="viewport" content="${viewport}" />`);
+    if (description) tags.push(`<meta name="description" content="${description}" />`);
+    if (keywords) tags.push(`<meta name="keywords" content="${keywords}" />`);
+    if (author) tags.push(`<meta name="author" content="${author}" />`);
+    tags.push(`<meta name="robots" content="${robotsIndex},${robotsFollow}" />`);
+    if (refreshDelay && refreshUrl) tags.push(`<meta http-equiv="refresh" content="${refreshDelay};url=${refreshUrl}" />`);
 
     // Open Graph Tags
-    if (ogTitle || title) tags += `<meta property="og:title" content="${ogTitle || title}" />\n`;
-    if (ogDescription || description) tags += `<meta property="og:description" content="${ogDescription || description}" />\n`;
-    if (ogImage) tags += `<meta property="og:image" content="${ogImage}" />\n`;
-    if (ogUrl) tags += `<meta property="og:url" content="${ogUrl}" />\n`;
-    tags += `<meta property="og:type" content="website" />\n`;
+    if (ogTitle) tags.push(`<meta property="og:title" content="${ogTitle}" />`);
+    if (ogDescription) tags.push(`<meta property="og:description" content="${ogDescription}" />`);
+    if (ogType) tags.push(`<meta property="og:type" content="${ogType}" />`);
+    if (ogUrl) tags.push(`<meta property="og:url" content="${ogUrl}" />`);
+    if (ogImage) tags.push(`<meta property="og:image" content="${ogImage}" />`);
+    if (ogSiteName) tags.push(`<meta property="og:site_name" content="${ogSiteName}" />`);
+    if (ogLocale) tags.push(`<meta property="og:locale" content="${ogLocale}" />`);
 
     // Twitter Card Tags
-    tags += `<meta name="twitter:card" content="${twitterCard}" />\n`;
-    if (twitterSite) tags += `<meta name="twitter:site" content="${twitterSite}" />\n`;
-    if (twitterCreator) tags += `<meta name="twitter:creator" content="${twitterCreator}" />\n`;
-    if (twitterImage || ogImage) tags += `<meta name="twitter:image" content="${twitterImage || ogImage}" />\n`;
-    if (ogTitle || title) tags += `<meta name="twitter:title" content="${ogTitle || title}" />\n`;
-    if (ogDescription || description) tags += `<meta name="twitter:description" content="${ogDescription || description}" />\n`;
+    if (twitterCard) tags.push(`<meta name="twitter:card" content="${twitterCard}" />`);
+    if (twitterSite) tags.push(`<meta name="twitter:site" content="${twitterSite}" />`);
+    if (twitterCreator) tags.push(`<meta name="twitter:creator" content="${twitterCreator}" />`);
+    if (twitterTitle) tags.push(`<meta name="twitter:title" content="${twitterTitle}" />`);
+    if (twitterDescription) tags.push(`<meta name="twitter:description" content="${twitterDescription}" />`);
+    if (twitterImage) tags.push(`<meta name="twitter:image" content="${twitterImage}" />`);
 
+    return tags.join('\n');
+  }, [
+    title, description, keywords, author, robotsIndex, robotsFollow, charset, viewport, refreshDelay, refreshUrl,
+    ogTitle, ogDescription, ogType, ogUrl, ogImage, ogSiteName, ogLocale,
+    twitterCard, twitterSite, twitterCreator, twitterTitle, twitterDescription, twitterImage
+  ]);
 
-    return tags.trim();
-  }, [title, description, keywords, author, ogTitle, ogDescription, ogImage, ogUrl, twitterCard, twitterSite, twitterCreator, twitterImage]);
+  const generatedHtml = useMemo(() => generateMetaTags(), [generateMetaTags]);
 
-  const generatedTags = generateMetaTags();
-
-  const handleCopy = useCallback(() => {
-    if (generatedTags) {
-      navigator.clipboard.writeText(generatedTags);
-      toast.success("Meta tags copied to clipboard!");
-    } else {
-      toast.error("No tags to copy.");
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedHtml);
+      toast.success('Meta tags copied to clipboard!');
+    } catch (err) {
+      toast.error('Failed to copy meta tags.');
+      console.error('Failed to copy: ', err);
     }
-  }, [generatedTags]);
+  };
 
-  const handleClear = useCallback(() => {
-    setTitle("");
-    setDescription("");
-    setKeywords("");
-    setAuthor("");
-    setOgTitle("");
-    setOgDescription("");
-    setOgImage("");
-    setOgUrl("");
-    setTwitterCard("summary");
-    setTwitterSite("");
-    setTwitterCreator("");
-    setTwitterImage("");
-    toast.success("All fields cleared!");
-  }, []);
+  const ogPreviewTitle = ogTitle || title || 'Your Website Title';
+  const ogPreviewDescription = ogDescription || description || 'A short description of your website.';
+  const ogPreviewImage = ogImage || 'https://via.placeholder.com/1200x630/1e293b/94a3b8?text=OG+Image+Placeholder';
+  const ogPreviewUrl = ogUrl || 'https://example.com';
+  const ogPreviewSiteName = ogSiteName || 'Example.com';
 
-  const handleFavoriteToggle = useCallback(() => {
-    if (isToolFavorite) {
-      removeFavorite(TOOL_SLUG);
-      toast.success(`Removed ${TOOL_NAME} from favorites!`);
-    } else {
-      addFavorite(TOOL_SLUG);
-      toast.success(`Added ${TOOL_NAME} to favorites!`);
-    }
-  }, [isToolFavorite, addFavorite, removeFavorite]);
-
-  const renderInputField = (label: string, value: string, setValue: (v: string) => void, placeholder: string = "", type: string = "text") => (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={label.toLowerCase().replace(/\s/g, "-")} className="text-sm font-medium text-slate-300">
-        {label}
-      </label>
-      {type === "textarea" ? (
-        <textarea
-          id={label.toLowerCase().replace(/\s/g, "-")}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
-          rows={3}
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-        />
-      ) : (
-        <input
-          type={type}
-          id={label.toLowerCase().replace(/\s/g, "-")}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-        />
-      )}
-    </div>
-  );
-
-  const ogPreviewTitle = ogTitle || title || "Your Website Title";
-  const ogPreviewDescription = ogDescription || description || "A compelling description of your website content.";
-  const ogPreviewImage = ogImage || "https://via.placeholder.com/1200x630/1e293b/e2e8f0?text=Open+Graph+Image";
-  const ogPreviewUrl = ogUrl || "https://yourwebsite.com";
+  const twitterPreviewTitle = twitterTitle || ogTitle || title || 'Your Website Title';
+  const twitterPreviewDescription = twitterDescription || ogDescription || description || 'A short description of your website.';
+  const twitterPreviewImage = twitterImage || ogImage || 'https://via.placeholder.com/1200x675/1e293b/94a3b8?text=Twitter+Image+Placeholder';
+  const twitterPreviewSite = twitterSite || '@yourwebsite';
+  const twitterPreviewCreator = twitterCreator || '@yourcreator';
 
   return (
     <ToolPageWrapper
-      toolSlug={TOOL_SLUG}
-      toolName={TOOL_NAME}
-      description={TOOL_DESCRIPTION}
+      toolSlug={SLUG}
+      toolName="Meta Tag Generator & OG Preview"
+      description="Generate SEO-friendly meta tags and preview Open Graph & Twitter cards."
     >
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Input Section */}
-        <div className="flex-1 flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-200">Meta Tag Inputs</h2>
-            <button
-              onClick={handleFavoriteToggle}
-              className="p-2 rounded-full text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
-              aria-label={isToolFavorite ? "Remove from favorites" : "Add to favorites"}
-            >
-              {isToolFavorite ? <StarOff size={20} fill="currentColor" /> : <Star size={20} />}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderInputField("Title", title, setTitle, "e.g., My Awesome Website")}
-            {renderInputField("Author", author, setAuthor, "e.g., John Doe")}
-            {renderInputField("Description", description, setDescription, "A brief summary of your page content.", "textarea")}
-            {renderInputField("Keywords", keywords, setKeywords, "comma, separated, keywords", "textarea")}
-          </div>
-
-          <h3 className="text-lg font-semibold text-slate-200 mt-4">Open Graph (Social Media) Tags</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderInputField("OG Title", ogTitle, setOgTitle, "e.g., My Website for Social Media")}
-            {renderInputField("OG URL", ogUrl, setOgUrl, "e.g., https://yourwebsite.com/page")}
-            {renderInputField("OG Description", ogDescription, setOgDescription, "Description for social media shares.", "textarea")}
-            {renderInputField("OG Image URL", ogImage, setOgImage, "e.g., https://yourwebsite.com/image.jpg")}
-          </div>
-
-          <h3 className="text-lg font-semibold text-slate-200 mt-4">Twitter Card Tags</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="twitter-card-type" className="text-sm font-medium text-slate-300">
-                Twitter Card Type
-              </label>
-              <select
-                id="twitter-card-type"
-                value={twitterCard}
-                onChange={(e) => setTwitterCard(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors appearance-none"
-              >
-                <option value="summary">Summary Card</option>
-                <option value="summary_large_image">Summary Card with Large Image</option>
-                <option value="app">App Card</option>
-                <option value="player">Player Card</option>
-              </select>
+        {/* Input Forms */}
+        <div className="flex-1 flex flex-col gap-8">
+          {/* Basic Meta Tags */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Basic Meta Tags</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Title" id="title" value={title} onChange={setTitle} placeholder="e.g., My Awesome Website" />
+              <Input label="Author" id="author" value={author} onChange={setAuthor} placeholder="e.g., John Doe" />
+              <Textarea label="Description" id="description" value={description} onChange={setDescription} placeholder="A brief summary of your page content." rows={2} />
+              <Textarea label="Keywords" id="keywords" value={keywords} onChange={setKeywords} placeholder="comma, separated, keywords" rows={2} />
+              <Select
+                label="Robots Index"
+                id="robotsIndex"
+                value={robotsIndex}
+                onChange={setRobotsIndex}
+                options={[
+                  { value: 'index', label: 'index' },
+                  { value: 'noindex', label: 'noindex' },
+                ]}
+              />
+              <Select
+                label="Robots Follow"
+                id="robotsFollow"
+                value={robotsFollow}
+                onChange={setRobotsFollow}
+                options={[
+                  { value: 'follow', label: 'follow' },
+                  { value: 'nofollow', label: 'nofollow' },
+                ]}
+              />
+              <Input label="Charset" id="charset" value={charset} onChange={setCharset} placeholder="e.g., UTF-8" />
+              <Input label="Viewport" id="viewport" value={viewport} onChange={setViewport} placeholder="e.g., width=device-width, initial-scale=1.0" />
+              <Input label="Refresh Delay (seconds)" id="refreshDelay" type="number" value={refreshDelay} onChange={setRefreshDelay} placeholder="e.g., 5" />
+              <Input label="Refresh URL" id="refreshUrl" value={refreshUrl} onChange={setRefreshUrl} placeholder="e.g., https://example.com/new-page" />
             </div>
-            {renderInputField("Twitter Site", twitterSite, setTwitterSite, "e.g., @yourtwitterhandle")}
-            {renderInputField("Twitter Creator", twitterCreator, setTwitterCreator, "e.g., @yourcreatorhandle")}
-            {renderInputField("Twitter Image URL", twitterImage, setTwitterImage, "e.g., https://yourwebsite.com/twitter-image.jpg")}
+          </div>
+
+          {/* Open Graph Tags */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Open Graph Tags (Facebook, LinkedIn, etc.)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="OG Title" id="ogTitle" value={ogTitle} onChange={setOgTitle} placeholder="e.g., My Awesome Website" />
+              <Input label="OG URL" id="ogUrl" value={ogUrl} onChange={setOgUrl} placeholder="e.g., https://example.com" />
+              <Textarea label="OG Description" id="ogDescription" value={ogDescription} onChange={setOgDescription} placeholder="A compelling description for social media." rows={2} />
+              <Input label="OG Image URL" id="ogImage" value={ogImage} onChange={setOgImage} placeholder="e.g., https://example.com/image.jpg" />
+              <Select
+                label="OG Type"
+                id="ogType"
+                value={ogType}
+                onChange={setOgType}
+                options={[
+                  { value: 'website', label: 'website' },
+                  { value: 'article', label: 'article' },
+                  { value: 'book', label: 'book' },
+                  { value: 'profile', label: 'profile' },
+                ]}
+              />
+              <Input label="OG Site Name" id="ogSiteName" value={ogSiteName} onChange={setOgSiteName} placeholder="e.g., My Company" />
+              <Input label="OG Locale" id="ogLocale" value={ogLocale} onChange={setOgLocale} placeholder="e.g., en_US" />
+            </div>
+          </div>
+
+          {/* Twitter Card Tags */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Twitter Card Tags</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Twitter Card Type"
+                id="twitterCard"
+                value={twitterCard}
+                onChange={setTwitterCard}
+                options={[
+                  { value: 'summary', label: 'Summary Card' },
+                  { value: 'summary_large_image', label: 'Summary Card with Large Image' },
+                  { value: 'app', label: 'App Card' },
+                  { value: 'player', label: 'Player Card' },
+                ]}
+              />
+              <Input label="Twitter Site" id="twitterSite" value={twitterSite} onChange={setTwitterSite} placeholder="e.g., @yourwebsite" />
+              <Input label="Twitter Creator" id="twitterCreator" value={twitterCreator} onChange={setTwitterCreator} placeholder="e.g., @yourcreator" />
+              <Input label="Twitter Title" id="twitterTitle" value={twitterTitle} onChange={setTwitterTitle} placeholder="e.g., My Awesome Tweet Title" />
+              <Textarea label="Twitter Description" id="twitterDescription" value={twitterDescription} onChange={setTwitterDescription} placeholder="A concise description for Twitter." rows={2} />
+              <Input label="Twitter Image URL" id="twitterImage" value={twitterImage} onChange={setTwitterImage} placeholder="e.g., https://example.com/twitter-image.jpg" />
+            </div>
           </div>
         </div>
 
-        {/* Output & Preview Section */}
-        <div className="flex-1 flex flex-col gap-6 lg:max-w-[50%]">
-          <h2 className="text-xl font-semibold text-slate-200">Generated Meta Tags</h2>
-          <textarea
-            value={generatedTags}
-            readOnly
-            rows={15}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono resize-y focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none transition-colors"
-            placeholder="Generated meta tags will appear here..."
-          />
-          <div className="flex gap-4">
-            <button
-              onClick={handleCopy}
-              className="flex items-center justify-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-md"
-            >
-              <Copy size={18} /> Copy Tags
-            </button>
-            <button
-              onClick={handleClear}
-              className="flex items-center justify-center gap-2 px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors shadow-md"
-            >
-              Clear All
-            </button>
+        {/* Output and Preview */}
+        <div className="flex-1 flex flex-col gap-8">
+          {/* Generated HTML */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Generated Meta Tags</h2>
+            <div className="relative">
+              <textarea
+                value={generatedHtml}
+                readOnly
+                rows={15}
+                className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 font-mono text-sm text-slate-200 resize-y focus:outline-none"
+              ></textarea>
+              <button
+                onClick={copyToClipboard}
+                className="absolute top-3 right-3 bg-slate-700 hover:bg-slate-600 text-slate-200 p-2 rounded-md transition-colors"
+                aria-label="Copy to clipboard"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
           </div>
 
-          <h2 className="text-xl font-semibold text-slate-200 mt-6">Open Graph Preview</h2>
-          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
-            {ogPreviewImage && (
-              <div className="relative w-full h-48 bg-slate-900 flex items-center justify-center overflow-hidden">
-                <img
-                  src={ogPreviewImage}
-                  alt="Open Graph Preview"
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://via.placeholder.com/1200x630/1e293b/e2e8f0?text=Image+Not+Found";
-                    e.currentTarget.alt = "Image not found";
-                  }}
-                />
+          {/* OG Preview */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Open Graph Preview</h2>
+            <div className="bg-slate-900 rounded-lg shadow-lg overflow-hidden border border-slate-700 max-w-md mx-auto">
+              {/* Image */}
+              <div className="w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm overflow-hidden">
+                {ogPreviewImage ? (
+                  <img src={ogPreviewImage} alt="OG Image Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/1200x630/1e293b/94a3b8?text=OG+Image+Placeholder'; }} />
+                ) : (
+                  <span>No OG Image</span>
+                )}
               </div>
-            )}
-            <div className="p-4 flex flex-col gap-2">
-              <p className="text-xs text-slate-400 truncate">{ogPreviewUrl}</p>
-              <h4 className="text-lg font-semibold text-slate-100 line-clamp-2">{ogPreviewTitle}</h4>
-              <p className="text-sm text-slate-300 line-clamp-3">{ogPreviewDescription}</p>
+              <div className="p-4">
+                {/* URL */}
+                <p className="text-xs text-slate-400 mb-1 truncate">{ogPreviewUrl}</p>
+                {/* Title */}
+                <h3 className="text-lg font-semibold text-slate-100 mb-1 line-clamp-2">
+                  {ogPreviewTitle}
+                </h3>
+                {/* Description */}
+                <p className="text-sm text-slate-300 line-clamp-3">
+                  {ogPreviewDescription}
+                </p>
+                {/* Site Name */}
+                <p className="text-xs text-slate-400 mt-2">{ogPreviewSiteName}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Twitter Preview */}
+          <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 shadow-lg">
+            <h2 className="text-xl font-semibold text-slate-100 mb-4">Twitter Card Preview</h2>
+            <div className="bg-slate-900 rounded-lg shadow-lg overflow-hidden border border-slate-700 max-w-md mx-auto">
+              {/* Image */}
+              {(twitterCard === 'summary_large_image' || twitterCard === 'summary') && (
+                <div className="w-full h-48 bg-slate-700 flex items-center justify-center text-slate-400 text-sm overflow-hidden">
+                  {twitterPreviewImage ? (
+                    <img src={twitterPreviewImage} alt="Twitter Image Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/1200x675/1e293b/94a3b8?text=Twitter+Image+Placeholder'; }} />
+                  ) : (
+                    <span>No Twitter Image</span>
+                  )}
+                </div>
+              )}
+              <div className="p-4">
+                {/* Site/Creator */}
+                <p className="text-xs text-slate-400 mb-1">
+                  {twitterPreviewSite} {twitterPreviewCreator && `• ${twitterPreviewCreator}`}
+                </p>
+                {/* Title */}
+                <h3 className="text-lg font-semibold text-slate-100 mb-1 line-clamp-2">
+                  {twitterPreviewTitle}
+                </h3>
+                {/* Description */}
+                <p className="text-sm text-slate-300 line-clamp-3">
+                  {twitterPreviewDescription}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </ToolPageWrapper>
   );
-}
+};
+
+export default MetaTagGeneratorPage;
