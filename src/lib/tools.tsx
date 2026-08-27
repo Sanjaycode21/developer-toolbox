@@ -15,6 +15,10 @@ import {
   Clock,
   Key,
   Search,
+  Type,
+  List,
+  Image,
+  Link, // Added Link icon for URL tools
 } from "lucide-react";
 
 export interface Tool {
@@ -26,93 +30,117 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
-  // Favorites & History
+  // Core Tools
   {
     slug: "favorites",
     name: "Favorites",
-    category: "General",
+    category: "Core",
     path: "/tools/favorites",
-    description: "Your most loved tools, all in one place.",
+    description: "Your most loved and frequently used tools.",
   },
   {
     slug: "history",
     name: "History",
-    category: "General",
+    category: "Core",
     path: "/tools/history",
     description: "Recently used tools for quick access.",
   },
-  // Converters
+
+  // Converters & Encoders
   {
     slug: "base64-encoder-decoder",
     name: "Base64 Encoder / Decoder",
-    category: "Converters",
+    category: "Converters & Encoders",
     path: "/tools/base64-encoder-decoder",
     description: "Encode and decode Base64 strings.",
   },
   {
     slug: "base64-image-encoder-decoder",
     name: "Base64 Image Encoder / Decoder",
-    category: "Converters",
+    category: "Converters & Encoders",
     path: "/tools/base64-image-encoder-decoder",
     description: "Encode and decode images to/from Base64.",
   },
   {
-    slug: "unix-timestamp-epoch-converter",
-    name: "Unix Timestamp & Epoch Converter",
-    category: "Converters",
-    path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice versa.",
+    slug: "url-encoder-decoder",
+    name: "URL Encode/Decode",
+    category: "Converters & Encoders",
+    path: "/tools/url-encoder-decoder",
+    description: "Encode or decode URL components, query strings, and parameters.",
   },
   {
     slug: "case-converter",
     name: "Case Converter",
-    category: "Converters",
-    path: "/tools/case-converter",
-    description: "Convert text to different letter cases (e.g., camelCase, snake_case).",
+    category: "Converters & Encoders",
+    path: "/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools", // This path needs to be updated if the tool is moved to its own page
+    description: "Convert text between different cases (e.g., camelCase, snake_case).",
   },
-  // Formatters
+  {
+    slug: "unix-timestamp-epoch-converter",
+    name: "Unix Timestamp & Epoch Converter",
+    category: "Converters & Encoders",
+    path: "/tools/unix-timestamp-epoch-converter",
+    description: "Convert Unix timestamps to human-readable dates and vice versa.",
+  },
+
+  // Text & Data
   {
     slug: "json-formatter",
     name: "JSON Formatter",
-    category: "Formatters",
+    category: "Text & Data",
     path: "/tools/json-formatter",
     description: "Beautify or minify JSON data.",
   },
   {
     slug: "xml-formatter",
     name: "XML Formatter",
-    category: "Formatters",
+    category: "Text & Data",
     path: "/tools/xml-formatter",
     description: "Beautify or minify XML data.",
   },
   {
-    slug: "sql-formatter",
-    name: "SQL Formatter",
-    category: "Formatters",
-    path: "/tools/sql-formatter",
-    description: "Format SQL queries for better readability.",
-  },
-  {
-    slug: "html-formatter",
-    name: "HTML Formatter",
-    category: "Formatters",
-    path: "/tools/html-formatter",
-    description: "Beautify or minify HTML markup.",
-  },
-  {
     slug: "yaml-formatter",
     name: "YAML Formatter",
-    category: "Formatters",
+    category: "Text & Data",
     path: "/tools/yaml-formatter",
     description: "Beautify or minify YAML data.",
   },
   {
+    slug: "sql-formatter",
+    name: "SQL Formatter",
+    category: "Text & Data",
+    path: "/tools/sql-formatter",
+    description: "Beautify or minify SQL queries.",
+  },
+  {
+    slug: "html-formatter",
+    name: "HTML Formatter",
+    category: "Text & Data",
+    path: "/tools/html-formatter",
+    description: "Beautify or minify HTML markup.",
+  },
+  {
+    slug: "markdown-live-preview",
+    name: "Markdown Live Preview",
+    category: "Text & Data",
+    path: "/tools/markdown-live-preview",
+    description: "Write and preview Markdown in real-time.",
+  },
+  {
     slug: "csv-viewer-converter",
     name: "CSV Viewer / Converter",
-    category: "Formatters",
+    category: "Text & Data",
     path: "/tools/csv-viewer-converter",
-    description: "View and convert CSV data to other formats.",
+    description: "View, edit, and convert CSV data.",
   },
+  {
+    slug: "lorem-ipsum-generator",
+    name: "Lorem Ipsum Generator",
+    category: "Text & Data",
+    path: "/tools/day-7-implement-case-converter-lorem-ipsum-generator-tools", // This path needs to be updated if the tool is moved to its own page
+    description: "Generate placeholder text for your designs and prototypes.",
+  },
+
   // Generators
   {
     slug: "hash-generator",
@@ -125,43 +153,43 @@ export const tools: Tool[] = [
     slug: "uuid-generator",
     name: "UUID Generator",
     category: "Generators",
-    path: "/tools/uuid-generator",
+    path: "/tools/day-6-implement-uuid-password-generator-tools", // This path needs to be updated if the tool is moved to its own page
     description: "Generate universally unique identifiers (UUIDs).",
   },
   {
     slug: "password-generator",
     name: "Password Generator",
     category: "Generators",
-    path: "/tools/password-generator",
+    path: "/tools/day-6-implement-uuid-password-generator-tools", // This path needs to be updated if the tool is moved to its own page
     description: "Create strong, random passwords.",
   },
   {
-    slug: "lorem-ipsum-generator",
-    name: "Lorem Ipsum Generator",
+    slug: "cron-expression-builder",
+    name: "Cron Expression Builder",
     category: "Generators",
-    path: "/tools/lorem-ipsum-generator",
-    description: "Generate placeholder text for your designs and prototypes.",
+    path: "/tools/cron-expression-builder",
+    description: "Build and visualize cron job schedules.",
   },
   {
     slug: "meta-tag-generator",
     name: "Meta Tag Generator",
     category: "Generators",
     path: "/tools/meta-tag-generator",
-    description: "Generate essential meta tags for SEO and social media.",
+    description: "Generate essential meta tags for SEO.",
   },
   {
     slug: "meta-tag-generator-og-preview",
-    name: "Open Graph Meta Tag Generator & Preview",
+    name: "Open Graph Meta Tag Generator",
     category: "Generators",
     path: "/tools/meta-tag-generator-og-preview",
-    description: "Generate Open Graph meta tags and preview how your content will look when shared.",
+    description: "Generate Open Graph meta tags and preview.",
   },
   {
     slug: "robots-txt-generator",
     name: "Robots.txt Generator",
     category: "Generators",
     path: "/tools/robots-txt-generator",
-    description: "Create a robots.txt file to manage crawler access.",
+    description: "Create a robots.txt file to manage web crawler access.",
   },
   {
     slug: "sitemap-xml-generator",
@@ -170,74 +198,93 @@ export const tools: Tool[] = [
     path: "/tools/sitemap-xml-generator",
     description: "Generate an XML sitemap for your website.",
   },
-  {
-    slug: "css-shadow-gradient-generator",
-    name: "CSS Shadow & Gradient Generator",
-    category: "Generators",
-    path: "/tools/css-shadow-gradient-generator",
-    description: "Generate beautiful CSS shadows and gradients with live preview.",
-  },
-  {
-    slug: "cron-expression-builder",
-    name: "Cron Expression Builder",
-    category: "Generators",
-    path: "/tools/cron-expression-builder",
-    description: "Generate cron expressions for scheduled tasks.",
-  },
-  // Web Utilities
+
+  // Web & Security
   {
     slug: "jwt-decoder",
     name: "JWT Decoder",
-    category: "Web Utilities",
+    category: "Web & Security",
     path: "/tools/jwt-decoder",
-    description: "Decode JSON Web Tokens to inspect header, payload, and signature.",
+    description: "Decode and inspect JSON Web Tokens.",
   },
   {
-    slug: "url-encoder-decoder",
-    name: "URL Encoder / Decoder",
-    category: "Web Utilities",
-    path: "/tools/url-encoder-decoder",
-    description: "Encode and decode URL components.",
-  },
-  // Text Utilities
-  {
-    slug: "markdown-live-preview",
-    name: "Markdown Live Preview",
-    category: "Text Utilities",
-    path: "/tools/markdown-live-preview",
-    description: "Write and preview Markdown in real-time.",
+    slug: "hash-verifier",
+    name: "Hash Verifier",
+    category: "Web & Security",
+    path: "/tools/hash-verifier",
+    description: "Verify the integrity of files using hash comparison.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
-    category: "Text Utilities",
+    category: "Web & Security",
     path: "/tools/regex-tester-generator",
     description: "Test and build regular expressions.",
   },
-  // Image & Color
+
+  // Design & Graphics
   {
     slug: "color-picker",
     name: "Color Picker",
-    category: "Image & Color",
+    category: "Design & Graphics",
     path: "/tools/color-picker",
-    description: "Select colors and get their values in various formats.",
+    description: "Select colors and get their codes in various formats.",
+  },
+  {
+    slug: "css-shadow-generator",
+    name: "CSS Shadow Generator",
+    category: "Design & Graphics",
+    path: "/tools/day-4-implement-css-shadow-gradient-generator-tools", // This path needs to be updated if the tool is moved to its own page
+    description: "Generate complex CSS box and text shadows.",
+  },
+  {
+    slug: "css-gradient-generator",
+    name: "CSS Gradient Generator",
+    category: "Design & Graphics",
+    path: "/tools/day-4-implement-css-shadow-gradient-generator-tools", // This path needs to be updated if the tool is moved to its own page
+    description: "Create beautiful CSS linear and radial gradients.",
   },
   {
     slug: "svg-optimizer-viewer",
     name: "SVG Optimizer & Viewer",
-    category: "Image & Color",
+    category: "Design & Graphics",
     path: "/tools/svg-optimizer-viewer",
-    description: "Optimize SVG files and preview their rendering.",
-  },
-  // Cryptography
-  {
-    slug: "hash-verifier",
-    name: "Hash Verifier",
-    category: "Cryptography",
-    path: "/tools/hash-verifier",
-    description: "Verify the integrity of files using hash comparison.",
+    description: "Optimize and preview SVG files.",
   },
 ];
+
+export const toolIcons: { [key: string]: React.ElementType } = {
+  favorites: Star,
+  history: History,
+  "base64-encoder-decoder": Binary,
+  "base64-image-encoder-decoder": Image,
+  "url-encoder-decoder": Link,
+  "case-converter": Type,
+  "unix-timestamp-epoch-converter": Clock,
+  "json-formatter": Code,
+  "xml-formatter": Layers,
+  "yaml-formatter": FileText,
+  "sql-formatter": Terminal,
+  "html-formatter": Code,
+  "markdown-live-preview": FileText,
+  "csv-viewer-converter": List,
+  "lorem-ipsum-generator": Sparkles,
+  "hash-generator": Hash,
+  "uuid-generator": Key,
+  "password-generator": Shield,
+  "cron-expression-builder": Calendar,
+  "meta-tag-generator": Settings,
+  "meta-tag-generator-og-preview": Settings,
+  "robots-txt-generator": Shield,
+  "sitemap-xml-generator": Search,
+  "jwt-decoder": Key,
+  "hash-verifier": Shield,
+  "regex-tester-generator": Search,
+  "color-picker": Palette,
+  "css-shadow-generator": Layers,
+  "css-gradient-generator": Palette,
+  "svg-optimizer-viewer": Image,
+};
 
 export function toolsByCategory(): Record<string, Tool[]> {
   const categories: Record<string, Tool[]> = {};
@@ -253,14 +300,3 @@ export function toolsByCategory(): Record<string, Tool[]> {
 export function getToolBySlug(slug: string): Tool | undefined {
   return tools.find((tool) => tool.slug === slug);
 }
-
-export const categoryIcons: Record<string, React.ElementType> = {
-  General: Layers,
-  Converters: Binary,
-  Formatters: Code,
-  Generators: Sparkles,
-  "Web Utilities": Terminal,
-  "Text Utilities": FileText,
-  "Image & Color": Palette,
-  Cryptography: Shield,
-};

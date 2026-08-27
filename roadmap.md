@@ -74,3 +74,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 69: Implement Meta Tag Generator & OG Preview
 - [x] Day 70: Implement Meta Tag Generator & OG Preview
 - [x] Day 71: Implement Cron Expression Builder
+- [x] Day 72: Implement URL Encode/Decode tool
