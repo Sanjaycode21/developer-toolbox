@@ -76,3 +76,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 71: Implement Cron Expression Builder
 - [x] Day 72: Implement URL Encode/Decode tool
 - [x] Day 73: Implement WebSocket Tester
+- [x] Day 74: Implement HTTP Header Viewer
