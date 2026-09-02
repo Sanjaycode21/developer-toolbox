@@ -1,161 +1,212 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ToolPageWrapper } from '@/components/ToolPageWrapper';
+import React, { useState, useEffect, useMemo } from 'react';
+import ToolPageWrapper from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
+import { Play, Table, XCircle, Loader2, Info } from 'lucide-react';
 
-const toolSlug = "sql-playground";
-const toolName = "SQL Playground";
-const description = "Execute and test SQL queries against a simulated database environment.";
-
-const mockDatabases = [
-  { id: 'sqlite', name: 'SQLite (Browser)' },
-  { id: 'postgresql', name: 'PostgreSQL (Mock)' },
-  { id: 'mysql', name: 'MySQL (Mock)' },
-];
-
-const mockData = {
+// Mock Database Data
+const mockDb = {
   users: [
-    { id: 1, name: 'Alice', email: 'alice@example.com', age: 30 },
-    { id: 2, name: 'Bob', email: 'bob@example.com', age: 24 },
-    { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35 },
+    { id: 1, name: 'Alice Smith', email: 'alice@example.com', created_at: '2023-01-15' },
+    { id: 2, name: 'Bob Johnson', email: 'bob@example.com', created_at: '2023-02-20' },
+    { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', created_at: '2023-03-10' },
+    { id: 4, name: 'Diana Prince', email: 'diana@example.com', created_at: '2023-04-01' },
   ],
   products: [
-    { id: 101, name: 'Laptop', price: 1200, stock: 50 },
-    { id: 102, name: 'Mouse', price: 25, stock: 200 },
-    { id: 103, name: 'Keyboard', price: 75, stock: 150 },
+    { id: 101, name: 'Laptop Pro', price: 1200.00, stock: 50 },
+    { id: 102, name: 'Mechanical Keyboard', price: 150.00, stock: 200 },
+    { id: 103, name: 'Wireless Mouse', price: 45.00, stock: 300 },
+    { id: 104, name: 'USB-C Hub', price: 75.00, stock: 120 },
+  ],
+  orders: [
+    { id: 1001, user_id: 1, product_id: 101, quantity: 1, order_date: '2023-04-01' },
+    { id: 1002, user_id: 2, product_id: 102, quantity: 2, order_date: '2023-04-05' },
+    { id: 1003, user_id: 1, product_id: 103, quantity: 1, order_date: '2023-04-10' },
+    { id: 1004, user_id: 3, product_id: 101, quantity: 1, order_date: '2023-04-12' },
+    { id: 1005, user_id: 4, product_id: 104, quantity: 1, order_date: '2023-04-15' },
+    { id: 1006, user_id: 2, product_id: 103, quantity: 3, order_date: '2023-04-18' },
   ],
 };
 
-export default function SqlPlaygroundPage() {
-  const [sqlQuery, setSqlQuery] = useState<string>(`-- Example: Select all users
-SELECT * FROM users;
+type TableRow = Record<string, any>;
 
--- Example: Select products with price > 50
--- SELECT name, price FROM products WHERE price > 50;
-
--- Example: Insert a new user (mocked)
--- INSERT INTO users (id, name, email, age) VALUES (4, 'David', 'david@example.com', 28);
-
--- Example: Update a user's age (mocked)
--- UPDATE users SET age = 31 WHERE name = 'Alice';
-
--- Example: Delete a product (mocked)
--- DELETE FROM products WHERE id = 102;
-`);
-  const [queryResult, setQueryResult] = useState<string | null>(null);
-  const [selectedDatabase, setSelectedDatabase] = useState<string>(mockDatabases[0].id);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+const SqlPlaygroundPage: React.FC = () => {
+  const toolSlug = "sql-playground";
+  const toolName = "SQL Playground";
+  const description = "Execute and test SQL queries against a mock database.";
 
   const { addToHistory } = useToolStore();
 
+  const [query, setQuery] = useState<string>('SELECT * FROM users;');
+  const [results, setResults] = useState<TableRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   useEffect(() => {
     addToHistory(toolSlug);
-  }, [addToHistory]);
+  }, [addToHistory, toolSlug]);
 
-  const handleExecuteQuery = useCallback(async () => {
+  const executeQuery = async () => {
     setIsLoading(true);
-    setQueryResult(null);
+    setError(null);
+    setResults(null);
 
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 700));
 
     try {
-      const queryLower = sqlQuery.toLowerCase().trim();
+      const lowerCaseQuery = query.toLowerCase().trim();
 
-      if (queryLower.startsWith('select')) {
-        if (queryLower.includes('from users')) {
-          // Simulate SELECT * FROM users;
-          const result = mockData.users.map(({ id, name, email, age }) => ({ id, name, email, age }));
-          setQueryResult(JSON.stringify(result, null, 2));
-          toast.success('Query executed successfully!');
-        } else if (queryLower.includes('from products')) {
-          // Simulate SELECT * FROM products; or specific columns
-          const result = mockData.products.map(({ id, name, price, stock }) => ({ id, name, price, stock }));
-          setQueryResult(JSON.stringify(result, null, 2));
-          toast.success('Query executed successfully!');
+      if (lowerCaseQuery.startsWith('select * from')) {
+        const match = lowerCaseQuery.match(/select \* from\s+(\w+);?/);
+        if (match && match[1]) {
+          const tableName = match[1];
+          if (mockDb.hasOwnProperty(tableName)) {
+            setResults(mockDb[tableName as keyof typeof mockDb]);
+            toast.success(`Query executed successfully on table '${tableName}'.`);
+          } else {
+            setError(`Error: Table '${tableName}' not found in mock database.`);
+            toast.error(`Table '${tableName}' not found.`);
+          }
         } else {
-          setQueryResult(`Error: Mock database does not support this SELECT query for '${selectedDatabase}'. Try 'SELECT * FROM users;' or 'SELECT * FROM products;'.`);
-          toast.error('Query failed: Unsupported SELECT statement.');
+          setError('Error: Invalid SELECT * FROM query format. Expected "SELECT * FROM <table>;".');
+          toast.error('Invalid query format.');
         }
-      } else if (queryLower.startsWith('insert into')) {
-        setQueryResult(`Success: Row inserted into '${selectedDatabase}' (mocked). Affected rows: 1.`);
-        toast.success('Insert query mocked successfully!');
-      } else if (queryLower.startsWith('update')) {
-        setQueryResult(`Success: Row updated in '${selectedDatabase}' (mocked). Affected rows: 1.`);
-        toast.success('Update query mocked successfully!');
-      } else if (queryLower.startsWith('delete from')) {
-        setQueryResult(`Success: Row deleted from '${selectedDatabase}' (mocked). Affected rows: 1.`);
-        toast.success('Delete query mocked successfully!');
-      } else if (queryLower.startsWith('create table') || queryLower.startsWith('drop table')) {
-        setQueryResult(`Success: Table operation executed for '${selectedDatabase}' (mocked).`);
-        toast.success('DDL query mocked successfully!');
-      } else {
-        setQueryResult(`Error: Invalid or unsupported SQL query for '${selectedDatabase}'.`);
-        toast.error('Query failed: Invalid or unsupported SQL.');
+      } else if (lowerCaseQuery.startsWith('insert') || lowerCaseQuery.startsWith('update') || lowerCaseQuery.startsWith('delete')) {
+        setError('Error: DML statements (INSERT, UPDATE, DELETE) are not supported in this mock playground.');
+        toast.error('DML statements not supported.');
+      } else if (lowerCaseQuery.startsWith('create') || lowerCaseQuery.startsWith('alter') || lowerCaseQuery.startsWith('drop')) {
+        setError('Error: DDL statements (CREATE, ALTER, DROP) are not supported in this mock playground.');
+        toast.error('DDL statements not supported.');
+      } else if (lowerCaseQuery === '') {
+        setError('Error: Query cannot be empty.');
+        toast.error('Query cannot be empty.');
       }
-    } catch (error: any) {
-      setQueryResult(`Error: ${error.message || 'An unknown error occurred.'}`);
-      toast.error('An error occurred during query execution.');
+      else {
+        setError('Error: Only basic "SELECT * FROM <table>" queries are supported.');
+        toast.error('Unsupported query type.');
+      }
+    } catch (e: any) {
+      setError(`An unexpected error occurred: ${e.message}`);
+      toast.error('An unexpected error occurred.');
     } finally {
       setIsLoading(false);
     }
-  }, [sqlQuery, selectedDatabase]);
+  };
+
+  const tableHeaders = useMemo(() => {
+    if (!results || results.length === 0) return [];
+    return Object.keys(results[0]);
+  }, [results]);
 
   return (
     <ToolPageWrapper toolSlug={toolSlug} toolName={toolName} description={description}>
       <div className="flex flex-col lg:flex-row gap-6 h-full">
-        {/* Query Input Section */}
-        <div className="flex-1 flex flex-col bg-slate-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold text-slate-200 mb-4">SQL Query</h2>
-          <div className="flex items-center gap-4 mb-4">
-            <label htmlFor="database-select" className="text-slate-400 text-sm">Database:</label>
-            <select
-              id="database-select"
-              className="flex-grow bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 focus:outline-none rounded-md px-3 py-2 text-sm text-slate-300 transition-colors"
-              value={selectedDatabase}
-              onChange={(e) => setSelectedDatabase(e.target.value)}
+        {/* Query Input Area */}
+        <div className="flex-1 flex flex-col gap-4">
+          <div className="flex-1 relative">
+            <textarea
+              className="w-full h-full min-h-[150px] lg:min-h-[300px] p-4 pr-28 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 font-mono text-sm focus:outline-none focus:border-indigo-500 resize-y lg:resize-none"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Enter your SQL query here..."
+              spellCheck="false"
+            />
+            <button
+              onClick={executeQuery}
               disabled={isLoading}
+              className="absolute bottom-4 right-4 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {mockDatabases.map((db) => (
-                <option key={db.id} value={db.id}>
-                  {db.name}
-                </option>
-              ))}
-            </select>
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              Run Query
+            </button>
           </div>
-          <textarea
-            className="flex-1 w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 focus:outline-none rounded-md p-4 text-sm font-mono text-slate-300 resize-none transition-colors"
-            placeholder="Enter your SQL query here..."
-            value={sqlQuery}
-            onChange={(e) => setSqlQuery(e.target.value)}
-            rows={10}
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleExecuteQuery}
-            className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Executing...' : 'Execute Query'}
-          </button>
+
+          {/* Info about supported queries */}
+          <div className="bg-slate-800 border border-slate-700 p-4 rounded-lg text-sm text-slate-400 flex items-start gap-3">
+            <Info className="h-5 w-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-slate-300 mb-1">Supported Queries:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Only basic <code className="bg-slate-700 px-1 py-0.5 rounded text-indigo-300">SELECT * FROM &lt;table_name&gt;</code> statements are supported.</li>
+                <li>Available tables: <code className="bg-slate-700 px-1 py-0.5 rounded text-indigo-300">users</code>, <code className="bg-slate-700 px-1 py-0.5 rounded text-indigo-300">products</code>, <code className="bg-slate-700 px-1 py-0.5 rounded text-indigo-300">orders</code>.</li>
+                <li>DML (INSERT, UPDATE, DELETE) and DDL (CREATE, ALTER, DROP) statements are not supported.</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
-        {/* Results Section */}
-        <div className="flex-1 flex flex-col bg-slate-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold text-slate-200 mb-4">Results</h2>
-          <div className="flex-1 bg-slate-900 border border-slate-700 rounded-md p-4 overflow-auto text-sm font-mono text-slate-300">
-            {queryResult ? (
-              <pre className="whitespace-pre-wrap break-words">{queryResult}</pre>
-            ) : (
-              <p className="text-slate-500">
-                {isLoading ? 'Executing query...' : 'Query results will appear here.'}
-              </p>
+        {/* Results Area */}
+        <div className="flex-1 flex flex-col gap-4">
+          <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+            <Table className="h-5 w-5 text-indigo-400" /> Query Results
+          </h3>
+
+          <div className="flex-1 bg-slate-800 border border-slate-700 rounded-lg p-4 overflow-auto relative min-h-[200px]">
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-800/70 backdrop-blur-sm z-10">
+                <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+                <span className="sr-only">Loading...</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="flex items-center gap-3 text-red-400 bg-red-900/30 border border-red-800 p-3 rounded-md">
+                <XCircle className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium">{error}</span>
+              </div>
+            )}
+
+            {results && results.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-300">
+                  <thead className="text-xs text-slate-400 uppercase bg-slate-700">
+                    <tr>
+                      {tableHeaders.map((header) => (
+                        <th key={header} scope="col" className="px-4 py-2 whitespace-nowrap">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((row, rowIndex) => (
+                      <tr key={rowIndex} className="bg-slate-800 border-b border-slate-700 hover:bg-slate-700 transition-colors">
+                        {tableHeaders.map((header) => (
+                          <td key={`${rowIndex}-${header}`} className="px-4 py-2 whitespace-nowrap">
+                            {String(row[header])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {results && results.length === 0 && !error && !isLoading && (
+              <div className="text-slate-400 text-center py-8">
+                <p>No results found for your query.</p>
+              </div>
+            )}
+
+            {!results && !error && !isLoading && (
+              <div className="text-slate-400 text-center py-8">
+                <p>Run a query to see results here.</p>
+                <p className="text-xs mt-2">Try: <code className="bg-slate-700 px-1 py-0.5 rounded text-indigo-300">SELECT * FROM users;</code></p>
+              </div>
             )}
           </div>
         </div>
       </div>
     </ToolPageWrapper>
   );
-}
+};
+
+export default SqlPlaygroundPage;
