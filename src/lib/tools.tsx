@@ -16,8 +16,6 @@ import {
   Key,
   Search,
   Type,
-  List,
-  Table,
   Database, // Added for SQL Playground
 } from "lucide-react";
 
@@ -30,20 +28,20 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
-  // Core Tools
+  // Favorites & History
   {
     slug: "favorites",
     name: "Favorites",
-    category: "Core",
+    category: "General",
     path: "/tools/favorites",
-    description: "Your most loved and frequently used tools.",
+    description: "Your most loved tools, all in one place.",
   },
   {
     slug: "history",
     name: "History",
-    category: "Core",
+    category: "General",
     path: "/tools/history",
-    description: "Recently used tools for quick access.",
+    description: "Recently used tools.",
   },
 
   // Converters & Encoders
@@ -55,13 +53,6 @@ export const tools: Tool[] = [
     description: "Encode and decode Base64 strings.",
   },
   {
-    slug: "url-encoder-decoder",
-    name: "URL Encoder / Decoder",
-    category: "Converters & Encoders",
-    path: "/tools/url-encoder-decoder",
-    description: "Encode and decode URLs.",
-  },
-  {
     slug: "base64-image-encoder-decoder",
     name: "Base64 Image Encoder / Decoder",
     category: "Converters & Encoders",
@@ -69,25 +60,25 @@ export const tools: Tool[] = [
     description: "Convert images to Base64 and vice-versa.",
   },
   {
+    slug: "url-encoder-decoder",
+    name: "URL Encoder / Decoder",
+    category: "Converters & Encoders",
+    path: "/tools/url-encoder-decoder",
+    description: "Encode and decode URLs.",
+  },
+  {
     slug: "case-converter",
     name: "Case Converter",
     category: "Converters & Encoders",
     path: "/tools/case-converter",
-    description: "Convert text to different letter cases.",
+    description: "Convert text between different casing styles.",
   },
   {
     slug: "csv-viewer-converter",
     name: "CSV Viewer / Converter",
     category: "Converters & Encoders",
     path: "/tools/csv-viewer-converter",
-    description: "View and convert CSV data.",
-  },
-  {
-    slug: "unix-timestamp-epoch-converter",
-    name: "Unix Timestamp & Epoch Converter",
-    category: "Converters & Encoders",
-    path: "/tools/unix-timestamp-epoch-converter",
-    description: "Convert Unix timestamps to human-readable dates and vice-versa.",
+    description: "View and convert CSV data to other formats.",
   },
 
   // Generators
@@ -96,7 +87,7 @@ export const tools: Tool[] = [
     name: "Hash Generator",
     category: "Generators",
     path: "/tools/hash-generator",
-    description: "Generate various types of hashes (MD5, SHA1, SHA256, etc.).",
+    description: "Generate various cryptographic hashes (MD5, SHA1, SHA256, etc.).",
   },
   {
     slug: "uuid-generator",
@@ -117,28 +108,28 @@ export const tools: Tool[] = [
     name: "Cron Expression Builder",
     category: "Generators",
     path: "/tools/cron-expression-builder",
-    description: "Build and understand cron expressions easily.",
+    description: "Build and understand cron job schedules.",
   },
   {
     slug: "lorem-ipsum-generator",
     name: "Lorem Ipsum Generator",
     category: "Generators",
     path: "/tools/lorem-ipsum-generator",
-    description: "Generate placeholder text for your designs and layouts.",
+    description: "Generate placeholder text for your designs.",
   },
   {
     slug: "meta-tag-generator",
     name: "Meta Tag Generator",
     category: "Generators",
     path: "/tools/meta-tag-generator",
-    description: "Generate essential meta tags for SEO.",
+    description: "Generate essential meta tags for SEO and social media.",
   },
   {
     slug: "meta-tag-generator-og-preview",
-    name: "Open Graph Meta Tag Generator & Preview",
+    name: "Open Graph Previewer",
     category: "Generators",
     path: "/tools/meta-tag-generator-og-preview",
-    description: "Generate and preview Open Graph meta tags for social media.",
+    description: "Preview how your links will appear on social media.",
   },
   {
     slug: "robots-txt-generator",
@@ -159,144 +150,150 @@ export const tools: Tool[] = [
     name: "CSS Shadow Generator",
     category: "Generators",
     path: "/tools/css-shadow-generator",
-    description: "Generate beautiful CSS box and text shadows.",
+    description: "Generate complex CSS box and text shadows.",
   },
   {
     slug: "css-gradient-generator",
     name: "CSS Gradient Generator",
     category: "Generators",
     path: "/tools/css-gradient-generator",
-    description: "Create stunning CSS linear and radial gradients.",
+    description: "Create beautiful CSS linear and radial gradients.",
   },
 
-  // Formatters
+  // Formatters & Validators
   {
     slug: "json-formatter",
     name: "JSON Formatter",
-    category: "Formatters",
+    category: "Formatters & Validators",
     path: "/tools/json-formatter",
     description: "Beautify or minify JSON data.",
   },
   {
     slug: "xml-formatter",
     name: "XML Formatter",
-    category: "Formatters",
+    category: "Formatters & Validators",
     path: "/tools/xml-formatter",
     description: "Beautify or minify XML data.",
   },
   {
     slug: "html-formatter",
     name: "HTML Formatter",
-    category: "Formatters",
+    category: "Formatters & Validators",
     path: "/tools/html-formatter",
-    description: "Beautify or minify HTML code.",
+    description: "Beautify or minify HTML markup.",
   },
   {
     slug: "sql-formatter",
     name: "SQL Formatter",
-    category: "Formatters",
+    category: "Formatters & Validators",
     path: "/tools/sql-formatter",
-    description: "Format SQL queries for better readability.",
+    description: "Beautify or minify SQL queries.",
   },
   {
     slug: "yaml-formatter",
     name: "YAML Formatter",
-    category: "Formatters",
+    category: "Formatters & Validators",
     path: "/tools/yaml-formatter",
     description: "Beautify or minify YAML data.",
   },
-
-  // Web Utilities
   {
-    slug: "http-header-viewer",
-    name: "HTTP Header Viewer",
-    category: "Web Utilities",
-    path: "/tools/http-header-viewer",
-    description: "View HTTP headers of any URL.",
-  },
-  {
-    slug: "jwt-decoder",
-    name: "JWT Decoder",
-    category: "Web Utilities",
-    path: "/tools/jwt-decoder",
-    description: "Decode and inspect JSON Web Tokens.",
-  },
-  {
-    slug: "markdown-live-preview",
-    name: "Markdown Live Preview",
-    category: "Web Utilities",
-    path: "/tools/markdown-live-preview",
-    description: "Write and preview Markdown in real-time.",
+    slug: "hash-verifier",
+    name: "Hash Verifier",
+    category: "Formatters & Validators",
+    path: "/tools/hash-verifier",
+    description: "Verify the integrity of files using hash comparison.",
   },
   {
     slug: "regex-tester-generator",
     name: "Regex Tester & Generator",
-    category: "Web Utilities",
+    category: "Formatters & Validators",
     path: "/tools/regex-tester-generator",
     description: "Test and build regular expressions.",
   },
   {
+    slug: "jwt-decoder",
+    name: "JWT Decoder",
+    category: "Formatters & Validators",
+    path: "/tools/jwt-decoder",
+    description: "Decode and inspect JSON Web Tokens.",
+  },
+
+  // Web & Network
+  {
+    slug: "http-header-viewer",
+    name: "HTTP Header Viewer",
+    category: "Web & Network",
+    path: "/tools/http-header-viewer",
+    description: "View HTTP headers of any URL.",
+  },
+  {
     slug: "websocket-tester",
     name: "WebSocket Tester",
-    category: "Web Utilities",
+    category: "Web & Network",
     path: "/tools/websocket-tester",
     description: "Connect and test WebSocket endpoints.",
   },
   {
+    slug: "markdown-live-preview",
+    name: "Markdown Live Preview",
+    category: "Web & Network",
+    path: "/tools/markdown-live-preview",
+    description: "Write and preview Markdown in real-time.",
+  },
+  {
     slug: "svg-optimizer-viewer",
     name: "SVG Optimizer & Viewer",
-    category: "Web Utilities",
+    category: "Web & Network",
     path: "/tools/svg-optimizer-viewer",
-    description: "Optimize and preview SVG files.",
+    description: "Optimize and view SVG files.",
+  },
+
+  // Utilities
+  {
+    slug: "unix-timestamp-epoch-converter",
+    name: "Unix Timestamp & Epoch Converter",
+    category: "Utilities",
+    path: "/tools/unix-timestamp-epoch-converter",
+    description: "Convert between human-readable dates and Unix timestamps.",
   },
   {
     slug: "color-picker",
     name: "Color Picker",
-    category: "Web Utilities",
+    category: "Utilities",
     path: "/tools/color-picker",
-    description: "Select and convert colors.",
+    description: "Select and convert colors between different formats.",
   },
 
-  // Database Tools
+  // Database
   {
     slug: "sql-playground",
     name: "SQL Playground",
     category: "Database",
     path: "/tools/sql-playground",
-    description: "Execute and test SQL queries in a simulated environment.",
+    description: "Execute and test SQL queries against a simulated database environment.",
   },
 ];
 
 export function toolsByCategory(): Record<string, Tool[]> {
-  const categories: Record<string, Tool[]> = {};
-  tools.forEach((tool) => {
-    if (!categories[tool.category]) {
-      categories[tool.category] = [];
+  return tools.reduce((acc, tool) => {
+    if (!acc[tool.category]) {
+      acc[tool.category] = [];
     }
-    categories[tool.category].push(tool);
-  });
-  return categories;
+    acc[tool.category].push(tool);
+    return acc;
+  }, {} as Record<string, Tool[]>);
 }
 
 export function getToolBySlug(slug: string): Tool | undefined {
   return tools.find((tool) => tool.slug === slug);
 }
 
-export function getCategoryIcon(category: string): React.ElementType {
-  switch (category) {
-    case "Core":
-      return Star;
-    case "Converters & Encoders":
-      return Layers;
-    case "Generators":
-      return Sparkles;
-    case "Formatters":
-      return Code;
-    case "Web Utilities":
-      return Terminal;
-    case "Database": // Added icon for Database category
-      return Database;
-    default:
-      return Settings;
-  }
-}
+export const categoryIcons: Record<string, React.ElementType> = {
+  General: Star,
+  "Converters & Encoders": Binary,
+  Generators: Sparkles,
+  "Formatters & Validators": Code,
+  "Web & Network": Layers,
+  Utilities: Settings,
+  Database: Database, // Assign icon for Database category
+};
