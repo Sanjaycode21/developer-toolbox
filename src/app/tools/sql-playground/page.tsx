@@ -1,246 +1,261 @@
-'use client';
+"use client";
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
-import { Play, Database, Table } from 'lucide-react';
 
 interface User {
   id: number;
   name: string;
   email: string;
+  age: number;
 }
 
-// Mock database table
-let mockUsers: User[] = [
-  { id: 1, name: 'Alice Smith', email: 'alice@example.com' },
-  { id: 2, name: 'Bob Johnson', email: 'bob@example.com' },
-  { id: 3, name: 'Charlie Brown', email: 'charlie@example.com' },
+const initialDatabase: User[] = [
+  { id: 1, name: 'Alice', email: 'alice@example.com', age: 30 },
+  { id: 2, name: 'Bob', email: 'bob@example.com', age: 24 },
+  { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35 },
 ];
+const initialNextId = 4;
+
+// Helper function to parse WHERE clauses for the mock database
+const parseWhereClause = (whereClause: string | undefined, item: User): boolean => {
+  if (!whereClause) return true;
+
+  // Very basic parsing: assumes conditions are joined by 'AND'
+  // Does not support 'OR' or parentheses for simplicity.
+  const andConditions = whereClause.split(/\s+AND\s+/i);
+
+  return andConditions.every(conditionPart => {
+    const match = conditionPart.match(/(\w+)\s*([<>=!]+)\s*(.+)/);
+    if (!match) {
+      console.warn(`Could not parse condition part: ${conditionPart}`);
+      return false; // Malformed condition
+    }
+
+    const [, key, op, valueStr] = match;
+    const prop = key.toLowerCase() as keyof User;
+    const itemValue = item[prop];
+    let compareValue: any = valueStr.trim();
+
+    // Attempt to convert valueStr to appropriate type
+    if (!isNaN(Number(compareValue))) {
+      compareValue = Number(compareValue);
+    } else if (compareValue.startsWith("'") && compareValue.endsWith("'")) {
+      compareValue = compareValue.slice(1, -1);
+    } else if (compareValue.startsWith('"') && compareValue.endsWith('"')) {
+      compareValue = compareValue.slice(1, -1);
+    }
+
+    // Perform comparison
+    switch (op) {
+      case '=': return itemValue == compareValue;
+      case '!=':
+      case '<>': return itemValue != compareValue;
+      case '>': return (itemValue as any) > compareValue;
+      case '<': return (itemValue as any) < compareValue;
+      case '>=': return (itemValue as any) >= compareValue;
+      case '<=': return (itemValue as any) <= compareValue;
+      default: return false;
+    }
+  });
+};
 
 const SQLPlaygroundPage: React.FC = () => {
   const toolSlug = "sql-playground";
+  const toolName = "SQL Playground";
+  const description = "Execute and test SQL queries against a mock in-memory database.";
+
   const { addToHistory } = useToolStore();
 
-  const [query, setQuery] = useState<string>(`SELECT * FROM users;`);
+  const [query, setQuery] = useState<string>('');
+  const [database, setDatabase] = useState<User[]>(initialDatabase);
+  const [nextId, setNextId] = useState<number>(initialNextId);
   const [results, setResults] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     addToHistory(toolSlug);
   }, [addToHistory, toolSlug]);
 
   const runQuery = useCallback(() => {
-    setIsLoading(true);
-    setResults(''); // Clear previous results
-    toast.dismiss(); // Dismiss any existing toasts
-
     const trimmedQuery = query.trim();
     if (!trimmedQuery) {
-      setResults('Please enter an SQL query.');
-      toast.error('Query cannot be empty.');
-      setIsLoading(false);
+      toast.error("Query cannot be empty.");
       return;
     }
 
-    // Simulate network delay
-    setTimeout(() => {
-      let output: any = null;
-      let success = true;
+    try {
+      let currentDatabase = [...database];
+      let output: string[] = [];
+      let affectedRows = 0;
 
-      try {
-        const upperQuery = trimmedQuery.toUpperCase();
+      // SELECT statement
+      const selectMatch = trimmedQuery.match(/^SELECT\s+(.+?)\s+FROM\s+users(?:\s+WHERE\s+(.+))?;/i);
+      if (selectMatch) {
+        const columnsStr = selectMatch[1].trim();
+        const whereClause = selectMatch[2]?.trim();
 
-        if (upperQuery.startsWith('SELECT')) {
-          if (upperQuery.includes('FROM USERS')) {
-            let filteredUsers = [...mockUsers];
-            let columnsToSelect: string[] = [];
-
-            const selectMatch = upperQuery.match(/SELECT\s+(.*?)\s+FROM/);
-            if (selectMatch && selectMatch[1] && selectMatch[1] !== '*') {
-              columnsToSelect = selectMatch[1].split(',').map(col => col.trim());
-            }
-
-            const whereMatch = upperQuery.match(/WHERE\s+(.*?)(;|$)/);
-            if (whereMatch && whereMatch[1]) {
-              const condition = whereMatch[1].trim();
-              const idMatch = condition.match(/ID\s*=\s*(\d+)/);
-              if (idMatch && idMatch[1]) {
-                const id = parseInt(idMatch[1], 10);
-                filteredUsers = filteredUsers.filter(user => user.id === id);
-              } else {
-                // Basic name search
-                const nameMatch = condition.match(/NAME\s*=\s*'([^']+)'/);
-                if (nameMatch && nameMatch[1]) {
-                  const name = nameMatch[1];
-                  filteredUsers = filteredUsers.filter(user => user.name.toUpperCase() === name.toUpperCase());
-                }
-              }
-            }
-
-            if (columnsToSelect.length > 0) {
-              output = filteredUsers.map(user => {
-                const newObj: any = {};
-                columnsToSelect.forEach(col => {
-                  if (col === 'ID' && 'id' in user) newObj.id = user.id;
-                  if (col === 'NAME' && 'name' in user) newObj.name = user.name;
-                  if (col === 'EMAIL' && 'email' in user) newObj.email = user.email;
-                });
-                return newObj;
-              });
-            } else {
-              output = filteredUsers;
-            }
-
-            if (output.length === 0) {
-              output = 'No results found.';
-            }
-
-          } else {
-            output = 'SELECT queries only supported for the "users" table.';
-            success = false;
-          }
-        } else if (upperQuery.startsWith('INSERT INTO USERS')) {
-          const valuesMatch = trimmedQuery.match(/\(([^)]+)\)\s+VALUES\s+\(([^)]+)\)/i);
-          if (valuesMatch && valuesMatch[1] && valuesMatch[2]) {
-            const columns = valuesMatch[1].split(',').map(c => c.trim().toLowerCase());
-            const values = valuesMatch[2].split(',').map(v => v.trim().replace(/^'|'$/g, '')); // Remove quotes
-
-            const newUser: Partial<User> = {};
-            columns.forEach((col, index) => {
-              if (col === 'name') newUser.name = values[index];
-              if (col === 'email') newUser.email = values[index];
-            });
-
-            if (newUser.name && newUser.email) {
-              const newId = Math.max(...mockUsers.map(u => u.id)) + 1;
-              const completeUser: User = { id: newId, name: newUser.name, email: newUser.email };
-              mockUsers.push(completeUser);
-              output = `1 row inserted. New user ID: ${newId}`;
-              toast.success('User inserted successfully!');
-            } else {
-              output = 'Invalid INSERT statement. Please provide name and email.';
-              success = false;
-            }
-          } else {
-            output = 'Invalid INSERT statement syntax.';
-            success = false;
-          }
-        } else if (upperQuery.startsWith('UPDATE') || upperQuery.startsWith('DELETE')) {
-          output = 'UPDATE and DELETE operations are not supported in this playground.';
-          success = false;
-        } else if (upperQuery.startsWith('CREATE TABLE') || upperQuery.startsWith('DROP TABLE')) {
-          output = 'DDL operations (CREATE/DROP TABLE) are not supported in this playground.';
-          success = false;
-        } else {
-          output = 'Unsupported SQL query type or syntax error.';
-          success = false;
+        let filteredData = currentDatabase;
+        if (whereClause) {
+          filteredData = currentDatabase.filter(item => parseWhereClause(whereClause, item));
         }
-      } catch (e: any) {
-        output = `Error executing query: ${e.message}`;
-        success = false;
-      } finally {
-        setResults(JSON.stringify(output, null, 2));
-        if (success) {
-          toast.success('Query executed successfully!');
+
+        if (filteredData.length === 0) {
+          output.push("No rows found.");
         } else {
-          toast.error('Query execution failed or partially successful.');
+          const allColumns = Object.keys(filteredData[0] || {});
+          const selectedColumns = columnsStr === '*' ? allColumns : columnsStr.split(',').map(col => col.trim());
+
+          // Header
+          output.push(selectedColumns.map(col => col.padEnd(15)).join(' | '));
+          output.push(selectedColumns.map(() => '-'.repeat(15)).join('-|-'));
+
+          // Data rows
+          filteredData.forEach(row => {
+            output.push(selectedColumns.map(col => {
+              const value = (row as any)[col]?.toString() || 'NULL';
+              return value.padEnd(15);
+            }).join(' | '));
+          });
         }
-        setIsLoading(false);
+        setResults(output.join('\n'));
+        toast.success(`Query executed. ${filteredData.length} rows selected.`);
+        return;
       }
-    }, 500); // Simulate a small delay
-  }, [query]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      runQuery();
+      // INSERT statement
+      const insertMatch = trimmedQuery.match(/^INSERT INTO users\s*\((.+?)\)\s*VALUES\s*\((.+?)\);/i);
+      if (insertMatch) {
+        const columns = insertMatch[1].split(',').map(c => c.trim().toLowerCase());
+        const values = insertMatch[2].split(',').map(v => {
+          const trimmed = v.trim();
+          if (trimmed.startsWith("'") && trimmed.endsWith("'")) return trimmed.slice(1, -1);
+          if (trimmed.startsWith('"') && trimmed.endsWith('"')) return trimmed.slice(1, -1);
+          if (!isNaN(Number(trimmed))) return Number(trimmed);
+          return trimmed;
+        });
+
+        if (columns.length !== values.length) {
+          throw new Error("Column count and value count mismatch.");
+        }
+
+        const newRow: Partial<User> = { id: nextId };
+        columns.forEach((col, index) => {
+          (newRow as any)[col] = values[index];
+        });
+
+        currentDatabase.push(newRow as User);
+        setNextId(prev => prev + 1);
+        affectedRows = 1;
+        setDatabase(currentDatabase);
+        setResults(`1 row inserted. New ID: ${nextId}`);
+        toast.success(`Query executed. ${affectedRows} row inserted.`);
+        return;
+      }
+
+      // UPDATE statement
+      const updateMatch = trimmedQuery.match(/^UPDATE users\s+SET\s+(.+?)(?:\s+WHERE\s+(.+))?;/i);
+      if (updateMatch) {
+        const setClause = updateMatch[1];
+        const whereClause = updateMatch[2];
+
+        const updates: { [key: string]: any } = {};
+        setClause.split(',').forEach(part => {
+          const [key, valueStr] = part.split('=').map(s => s.trim());
+          let value: any = valueStr;
+          if (valueStr.startsWith("'") && valueStr.endsWith("'")) value = valueStr.slice(1, -1);
+          else if (valueStr.startsWith('"') && valueStr.endsWith('"')) value = valueStr.slice(1, -1);
+          else if (!isNaN(Number(valueStr))) value = Number(valueStr);
+          updates[key.toLowerCase()] = value;
+        });
+
+        affectedRows = 0;
+        currentDatabase = currentDatabase.map(row => {
+          if (parseWhereClause(whereClause, row)) {
+            affectedRows++;
+            return { ...row, ...updates };
+          }
+          return row;
+        });
+        setDatabase(currentDatabase);
+        setResults(`${affectedRows} rows updated.`);
+        toast.success(`Query executed. ${affectedRows} rows updated.`);
+        return;
+      }
+
+      // DELETE statement
+      const deleteMatch = trimmedQuery.match(/^DELETE FROM users(?:\s+WHERE\s+(.+))?;/i);
+      if (deleteMatch) {
+        const whereClause = deleteMatch[1];
+        const initialCount = currentDatabase.length;
+        currentDatabase = currentDatabase.filter(item => !parseWhereClause(whereClause, item));
+        affectedRows = initialCount - currentDatabase.length;
+        setDatabase(currentDatabase);
+        setResults(`${affectedRows} rows deleted.`);
+        toast.success(`Query executed. ${affectedRows} rows deleted.`);
+        return;
+      }
+
+      throw new Error("Unsupported SQL query or syntax error.");
+
+    } catch (error: any) {
+      setResults(`Error: ${error.message}`);
+      toast.error(`Query failed: ${error.message}`);
     }
-  }, [runQuery]);
+  }, [query, database, nextId]);
+
+  const resetPlayground = useCallback(() => {
+    setQuery('');
+    setDatabase(initialDatabase);
+    setNextId(initialNextId);
+    setResults('');
+    toast.success("SQL Playground reset to initial state.");
+  }, []);
 
   return (
-    <ToolPageWrapper
-      toolSlug={toolSlug}
-      toolName="SQL Playground"
-      description="Experiment with SQL queries against a mock database."
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <ToolPageWrapper toolSlug={toolSlug} toolName={toolName} description={description}>
+      <div className="flex flex-col lg:flex-row gap-6 h-full">
         {/* Query Input */}
-        <div className="lg:col-span-2 flex flex-col space-y-4">
-          <label htmlFor="sql-query" className="block text-sm font-medium text-slate-300">
+        <div className="flex-1 flex flex-col">
+          <label htmlFor="sql-query" className="block text-sm font-medium text-slate-300 mb-2">
             SQL Query
           </label>
           <textarea
             id="sql-query"
-            className="w-full h-64 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 font-mono text-sm focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+            className="w-full flex-1 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 font-mono text-sm focus:border-indigo-500 focus:ring-indigo-500 resize-y min-h-[150px] lg:min-h-[300px]"
+            placeholder={`Example queries:\nSELECT * FROM users;\nSELECT name, age FROM users WHERE age > 25;\nINSERT INTO users (name, email, age) VALUES ('David', 'david@example.com', 28);\nUPDATE users SET age = 31 WHERE name = 'Alice';\nDELETE FROM users WHERE id = 2;`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter your SQL query here..."
             spellCheck="false"
           />
-          <button
-            onClick={runQuery}
-            disabled={isLoading}
-            className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? (
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <Play className="h-5 w-5 mr-2" />
-            )}
-            Run Query (Cmd/Ctrl + Enter)
-          </button>
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={runQuery}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
+              Run Query
+            </button>
+            <button
+              onClick={resetPlayground}
+              className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
-        {/* Results Output & Schema Info */}
-        <div className="lg:col-span-1 flex flex-col space-y-6">
-          {/* Results */}
-          <div className="flex flex-col space-y-4">
-            <label className="block text-sm font-medium text-slate-300">
-              Results
-            </label>
-            <div className="relative">
-              <pre className="w-full h-64 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 font-mono text-sm overflow-auto whitespace-pre-wrap break-all">
-                {results || 'Run a query to see results.'}
-              </pre>
-            </div>
-          </div>
-
-          {/* Schema Info */}
-          <div className="flex flex-col space-y-4">
-            <h3 className="flex items-center text-sm font-medium text-slate-300">
-              <Database className="h-4 w-4 mr-2 text-indigo-400" />
-              Mock Database Schema
-            </h3>
-            <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 text-sm text-slate-300">
-              <p className="font-semibold text-slate-200 mb-2 flex items-center">
-                <Table className="h-4 w-4 mr-1 text-slate-400" />
-                users
-              </p>
-              <ul className="list-disc list-inside ml-2 text-slate-400">
-                <li><span className="font-mono text-indigo-300">id</span>: INTEGER (Primary Key)</li>
-                <li><span className="font-mono text-indigo-300">name</span>: TEXT</li>
-                <li><span className="font-mono text-indigo-300">email</span>: TEXT</li>
-              </ul>
-              <p className="mt-4 text-slate-400">
-                Supported operations: <span className="font-mono text-indigo-300">SELECT</span>, <span className="font-mono text-indigo-300">INSERT</span> (basic).
-              </p>
-              <p className="mt-2 text-slate-400">
-                Try: <span className="font-mono text-indigo-300">SELECT * FROM users;</span>
-              </p>
-              <p className="mt-1 text-slate-400">
-                Try: <span className="font-mono text-indigo-300">SELECT name, email FROM users WHERE id = 1;</span>
-              </p>
-              <p className="mt-1 text-slate-400">
-                Try: <span className="font-mono text-indigo-300">INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');</span>
-              </p>
-            </div>
-          </div>
+        {/* Results Output */}
+        <div className="flex-1 flex flex-col">
+          <label htmlFor="sql-results" className="block text-sm font-medium text-slate-300 mb-2">
+            Results
+          </label>
+          <pre
+            id="sql-results"
+            className="w-full flex-1 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 font-mono text-sm whitespace-pre-wrap break-all overflow-auto min-h-[150px] lg:min-h-[300px]"
+          >
+            {results || "Query results will appear here."}
+          </pre>
         </div>
       </div>
     </ToolPageWrapper>
