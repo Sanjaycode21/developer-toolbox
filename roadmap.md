@@ -107,3 +107,4 @@ This roadmap lists the daily, step-by-step feature implementations and UX improv
 - [x] Day 102: Implement SQL Playground UI
 - [x] Day 103: Implement SQL Playground UI
 - [x] Day 104: Implement SQL Playground UI
+- [x] Day 105: Implement SQL Playground UI
