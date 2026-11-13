@@ -1,260 +1,299 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import ToolPageWrapper from '@/components/ToolPageWrapper';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
-import { Layers, Table, Hash, Terminal } from 'lucide-react'; // Import Lucide icons
 
-interface TableRow {
-  [key: string]: any;
+interface User {
+  id: number;
+  name: string;
+  email: string;
 }
 
-interface TableData {
-  columns: string[];
-  data: TableRow[];
+interface Product {
+  id: number;
+  name: string;
+  price: number;
 }
 
-// Initial in-memory database structure
-const initialDatabase: { [tableName: string]: TableData } = {
-  users: {
-    columns: ['id', 'name', 'email'],
-    data: [
-      { id: 1, name: 'Alice', email: 'alice@example.com' },
-      { id: 2, name: 'Bob', email: 'bob@example.com' },
-      { id: 3, name: 'Charlie', email: 'charlie@example.com' },
-    ],
-  },
-  products: {
-    columns: ['id', 'name', 'price'],
-    data: [
-      { id: 1, name: 'Laptop', price: 1200 },
-      { id: 2, name: 'Mouse', price: 25 },
-      { id: 3, name: 'Keyboard', price: 75 },
-    ],
-  },
+interface Order {
+  id: number;
+  user_id: number;
+  product_id: number;
+  quantity: number;
+  order_date: string;
+}
+
+type TableData = User[] | Product[] | Order[];
+
+interface Database {
+  users: User[];
+  products: Product[];
+  orders: Order[];
+}
+
+const initialDatabase: Database = {
+  users: [
+    { id: 1, name: 'Alice Smith', email: 'alice@example.com' },
+    { id: 2, name: 'Bob Johnson', email: 'bob@example.com' },
+    { id: 3, name: 'Charlie Brown', email: 'charlie@example.com' },
+  ],
+  products: [
+    { id: 101, name: 'Laptop', price: 1200.00 },
+    { id: 102, name: 'Mouse', price: 25.00 },
+    { id: 103, name: 'Keyboard', price: 75.00 },
+  ],
+  orders: [
+    { id: 1001, user_id: 1, product_id: 101, quantity: 1, order_date: '2023-01-15' },
+    { id: 1002, user_id: 2, product_id: 102, quantity: 2, order_date: '2023-01-16' },
+    { id: 1003, user_id: 1, product_id: 103, quantity: 1, order_date: '2023-01-17' },
+  ],
 };
 
-export default function SqlPlaygroundPage() {
-  const toolSlug = "sql-playground";
-  const { addToHistory } = useToolStore();
+const schema = {
+  users: ['id', 'name', 'email'],
+  products: ['id', 'name', 'price'],
+  orders: ['id', 'user_id', 'product_id', 'quantity', 'order_date'],
+};
 
-  const [query, setQuery] = useState<string>("");
-  const [results, setResults] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-  // Use a deep copy of initialDatabase to allow modifications without affecting the original
-  const [currentDb, setCurrentDb] = useState<{ [tableName: string]: TableData }>(
-    JSON.parse(JSON.stringify(initialDatabase))
-  );
+const SQLPlaygroundPage = () => {
+  const [query, setQuery] = useState<string>('');
+  const [results, setResults] = useState<string>('Run a query to see results.');
+  const [db, setDb] = useState<Database>(initialDatabase);
+
+  const { addToHistory } = useToolStore();
+  const toolSlug = "sql-playground";
 
   useEffect(() => {
     addToHistory(toolSlug);
   }, [addToHistory, toolSlug]);
 
-  const formatResults = (data: TableRow[] | string, type: 'data' | 'message'): string => {
-    if (type === 'message') {
-      return String(data);
-    }
-    if (!Array.isArray(data) || data.length === 0) {
-      return "No results found.";
-    }
-    return JSON.stringify(data, null, 2); // Pretty print JSON
-  };
+  const executeSql = useCallback((sql: string): { type: 'success' | 'error', message: string, data?: TableData } => {
+    const lowerSql = sql.toLowerCase().trim();
 
-  const executeQuery = useCallback(() => {
-    setError(null);
-    setResults("");
+    // SELECT statement
+    const selectMatch = lowerSql.match(/^select\s+\*\s+from\s+(\w+)\s*;?$/);
+    if (selectMatch) {
+      const tableName = selectMatch[1];
+      if (db.hasOwnProperty(tableName)) {
+        return { type: 'success', message: `Query successful for table '${tableName}'.`, data: db[tableName as keyof Database] };
+      }
+      return { type: 'error', message: `Error: Table '${tableName}' not found.` };
+    }
 
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) {
-      setError("Query cannot be empty.");
-      toast.error("Query cannot be empty.");
+    // INSERT statement
+    const insertMatch = lowerSql.match(/^insert\s+into\s+(\w+)\s+\(([^)]+)\)\s+values\s+\(([^)]+)\)\s*;?$/);
+    if (insertMatch) {
+      const tableName = insertMatch[1];
+      const columns = insertMatch[2].split(',').map(col => col.trim());
+      const values = insertMatch[3].split(',').map(val => val.trim().replace(/^'|'$/g, '')); // Remove quotes
+
+      if (!db.hasOwnProperty(tableName)) {
+        return { type: 'error', message: `Error: Table '${tableName}' not found.` };
+      }
+      if (columns.length !== values.length) {
+        return { type: 'error', message: 'Error: Column count and value count mismatch.' };
+      }
+
+      const newRow: Record<string, any> = {};
+      columns.forEach((col, index) => {
+        let parsedValue: string | number = values[index];
+        // Basic type conversion for numbers
+        if (!isNaN(Number(parsedValue)) && col !== 'order_date') {
+          parsedValue = Number(parsedValue);
+        }
+        newRow[col] = parsedValue;
+      });
+
+      // Simple auto-increment for 'id' if not provided
+      if (!newRow.id && schema[tableName as keyof typeof schema].includes('id')) {
+        const currentMaxId = db[tableName as keyof Database].reduce((max, row) => Math.max(max, row.id || 0), 0);
+        newRow.id = currentMaxId + 1;
+      }
+
+      setDb(prevDb => ({
+        ...prevDb,
+        [tableName]: [...prevDb[tableName as keyof Database], newRow],
+      }));
+      return { type: 'success', message: `1 row inserted into '${tableName}'.` };
+    }
+
+    // UPDATE statement (simplified: only by ID)
+    const updateMatch = lowerSql.match(/^update\s+(\w+)\s+set\s+([\w\s=,']+)\s+where\s+id\s*=\s*(\d+)\s*;?$/);
+    if (updateMatch) {
+      const tableName = updateMatch[1];
+      const setClause = updateMatch[2];
+      const idToUpdate = parseInt(updateMatch[3], 10);
+
+      if (!db.hasOwnProperty(tableName)) {
+        return { type: 'error', message: `Error: Table '${tableName}' not found.` };
+      }
+
+      const updates: Record<string, any> = {};
+      setClause.split(',').forEach(part => {
+        const [key, val] = part.split('=').map(s => s.trim());
+        let parsedValue: string | number = val.replace(/^'|'$/g, '');
+        if (!isNaN(Number(parsedValue))) {
+          parsedValue = Number(parsedValue);
+        }
+        updates[key] = parsedValue;
+      });
+
+      let updatedCount = 0;
+      setDb(prevDb => ({
+        ...prevDb,
+        [tableName]: prevDb[tableName as keyof Database].map(row => {
+          if (row.id === idToUpdate) {
+            updatedCount++;
+            return { ...row, ...updates };
+          }
+          return row;
+        }),
+      }));
+      return { type: 'success', message: `${updatedCount} row(s) updated in '${tableName}'.` };
+    }
+
+    // DELETE statement (simplified: only by ID)
+    const deleteMatch = lowerSql.match(/^delete\s+from\s+(\w+)\s+where\s+id\s*=\s*(\d+)\s*;?$/);
+    if (deleteMatch) {
+      const tableName = deleteMatch[1];
+      const idToDelete = parseInt(deleteMatch[2], 10);
+
+      if (!db.hasOwnProperty(tableName)) {
+        return { type: 'error', message: `Error: Table '${tableName}' not found.` };
+      }
+
+      let deletedCount = 0;
+      setDb(prevDb => {
+        const initialLength = prevDb[tableName as keyof Database].length;
+        const newTableData = prevDb[tableName as keyof Database].filter(row => row.id !== idToDelete);
+        deletedCount = initialLength - newTableData.length;
+        return {
+          ...prevDb,
+          [tableName]: newTableData,
+        };
+      });
+      return { type: 'success', message: `${deletedCount} row(s) deleted from '${tableName}'.` };
+    }
+
+    return { type: 'error', message: 'Error: Unsupported or invalid SQL query. Only basic SELECT *, INSERT, UPDATE (by ID), DELETE (by ID) are supported.' };
+  }, [db]);
+
+  const handleRunQuery = useCallback(() => {
+    if (!query.trim()) {
+      setResults('Please enter a SQL query.');
+      toast.error('Query cannot be empty.');
       return;
     }
 
     try {
-      // SELECT statement
-      const selectMatch = trimmedQuery.match(/^SELECT\s+(.+?)\s+FROM\s+([a-zA-Z_]+)\s*;?$/i);
-      if (selectMatch) {
-        const columnsPart = selectMatch[1].trim();
-        const tableName = selectMatch[2].trim().toLowerCase(); // Ensure table name is lowercased for lookup
-
-        if (!currentDb[tableName]) {
-          throw new Error(`Table '${tableName}' does not exist.`);
-        }
-
-        let selectedData = currentDb[tableName].data;
-
-        if (columnsPart !== '*') {
-          const requestedColumns = columnsPart.split(',').map(col => col.trim());
-          const invalidColumns = requestedColumns.filter(col => !currentDb[tableName].columns.includes(col));
-          if (invalidColumns.length > 0) {
-            throw new Error(`Invalid column(s) in '${tableName}': ${invalidColumns.join(', ')}`);
+      const result = executeSql(query);
+      if (result.type === 'success') {
+        if (result.data) {
+          if (result.data.length === 0) {
+            setResults('No results found.');
+          } else {
+            setResults(JSON.stringify(result.data, null, 2));
           }
-          selectedData = selectedData.map(row => {
-            const newRow: TableRow = {};
-            requestedColumns.forEach(col => {
-              newRow[col] = row[col];
-            });
-            return newRow;
-          });
+        } else {
+          setResults(result.message);
         }
-
-        setResults(formatResults(selectedData, 'data'));
-        toast.success(`Query executed successfully. ${selectedData.length} row(s) returned.`);
-        return;
+        toast.success(result.message);
+      } else {
+        setResults(result.message);
+        toast.error(result.message);
       }
-
-      // INSERT statement
-      const insertMatch = trimmedQuery.match(/^INSERT\s+INTO\s+([a-zA-Z_]+)\s+VALUES\s+\((.+?)\)\s*;?$/i);
-      if (insertMatch) {
-        const tableName = insertMatch[1].trim().toLowerCase(); // Ensure table name is lowercased for lookup
-        const valuesPart = insertMatch[2].trim();
-
-        if (!currentDb[tableName]) {
-          throw new Error(`Table '${tableName}' does not exist.`);
-        }
-
-        const table = currentDb[tableName];
-        // Regex to split values, handling quoted strings
-        const rawValues = valuesPart.match(/(?:'[^']*'|[^,])+/g)?.map(v => v.trim()) || [];
-
-        const parsedValues = rawValues.map(v => {
-          if (v.startsWith("'") && v.endsWith("'")) {
-            return v.substring(1, v.length - 1); // Remove quotes for strings
-          }
-          if (!isNaN(Number(v)) && v !== '') {
-            return Number(v); // Convert to number if possible
-          }
-          if (v.toLowerCase() === 'true') return true;
-          if (v.toLowerCase() === 'false') return false;
-          if (v.toLowerCase() === 'null') return null;
-          return v; // Keep as is
-        });
-
-        if (parsedValues.length !== table.columns.length) {
-          throw new Error(`Number of values (${parsedValues.length}) does not match number of columns (${table.columns.length}) for table '${tableName}'.`);
-        }
-
-        const newRow: TableRow = {};
-        table.columns.forEach((col, index) => {
-          newRow[col] = parsedValues[index];
-        });
-
-        // Basic ID uniqueness check if 'id' is the first column and it's a number
-        if (table.columns[0] === 'id' && typeof newRow.id === 'number') {
-          if (table.data.some(row => row.id === newRow.id)) {
-            throw new Error(`Duplicate ID '${newRow.id}' for table '${tableName}'.`);
-          }
-        }
-
-        const updatedData = [...table.data, newRow];
-        setCurrentDb(prevDb => ({
-          ...prevDb,
-          [tableName]: {
-            ...prevDb[tableName],
-            data: updatedData,
-          },
-        }));
-        setResults(formatResults(`1 row inserted into '${tableName}'.`, 'message'));
-        toast.success(`1 row inserted into '${tableName}'.`);
-        return;
-      }
-
-      // If no known command matches
-      throw new Error("Unsupported SQL query. Only SELECT and INSERT are supported.");
-
     } catch (e: any) {
-      setError(e.message);
-      toast.error(e.message);
+      setResults(`Error: ${e.message}`);
+      toast.error(`Query execution failed: ${e.message}`);
     }
-  }, [query, currentDb]);
+  }, [query, executeSql]);
 
-  const handleResetDb = useCallback(() => {
-    setCurrentDb(JSON.parse(JSON.stringify(initialDatabase))); // Reset to a fresh deep copy
-    setQuery("");
-    setResults("");
-    setError(null);
-    toast.success("Database reset to initial state.");
+  const handleResetDatabase = useCallback(() => {
+    setDb(initialDatabase);
+    setResults('Database reset to initial state.');
+    toast.success('Database has been reset.');
+  }, []);
+
+  const renderSchema = useMemo(() => {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-slate-200">Available Tables</h3>
+        {Object.entries(schema).map(([tableName, columns]) => (
+          <div key={tableName} className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+            <h4 className="font-medium text-indigo-400">{tableName}</h4>
+            <ul className="list-disc list-inside text-slate-400 text-sm mt-2">
+              {columns.map(col => (
+                <li key={`${tableName}-${col}`}>{col}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <h3 className="text-lg font-semibold text-slate-200 mt-6">Example Queries</h3>
+        <div className="space-y-2 text-sm text-slate-400">
+          <p><code>SELECT * FROM users;</code></p>
+          <p><code>INSERT INTO products (name, price) VALUES ('Monitor', 299.99);</code></p>
+          <p><code>UPDATE users SET email = 'alice.new@example.com' WHERE id = 1;</code></p>
+          <p><code>DELETE FROM orders WHERE id = 1003;</code></p>
+        </div>
+      </div>
+    );
   }, []);
 
   return (
     <ToolPageWrapper
       toolSlug={toolSlug}
       toolName="SQL Playground"
-      description="Execute and test SQL queries against an in-memory database. Supports basic SELECT and INSERT statements."
+      description="Experiment with SQL queries on a simulated in-memory database."
     >
       <div className="flex flex-col lg:flex-row gap-6 h-full">
-        {/* Schema Explorer */}
-        <div className="w-full lg:w-1/4 p-4 bg-slate-800 border border-slate-700 rounded-lg shadow-inner flex flex-col">
-          <h3 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-indigo-400" />
-            Schema Explorer
-          </h3>
-          <div className="flex-1 overflow-y-auto">
-            {Object.entries(currentDb).map(([tableName, table]) => (
-              <div key={tableName} className="mb-4 p-3 bg-slate-700/50 rounded-md border border-slate-600">
-                <h4 className="font-medium text-indigo-400 text-sm mb-2 flex items-center gap-1">
-                  <Table className="w-4 h-4 text-slate-400" />
-                  {tableName}
-                </h4>
-                <ul className="text-xs text-slate-300 space-y-1">
-                  {table.columns.map(col => (
-                    <li key={`${tableName}-${col}`} className="flex items-center gap-1">
-                      <Hash className="w-3 h-3 text-slate-500" />
-                      {col}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={handleResetDb}
-            className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
-          >
-            Reset Database
-          </button>
-        </div>
-
-        {/* Query and Results */}
-        <div className="flex-1 flex flex-col gap-6">
-          {/* Query Input */}
-          <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col space-y-4">
+          <div className="flex-1">
             <label htmlFor="sql-query" className="block text-sm font-medium text-slate-300 mb-2">
               SQL Query
             </label>
             <textarea
               id="sql-query"
-              className="w-full flex-1 bg-slate-800 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 focus:outline-none rounded-lg p-4 text-sm text-slate-200 placeholder-slate-500 resize-none font-mono overflow-auto"
-              rows={10}
+              className="w-full h-48 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-y"
+              placeholder="Enter your SQL query here (e.g., SELECT * FROM users;)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Example queries:\nSELECT * FROM users;\nINSERT INTO products VALUES (4, 'Monitor', 300);`}
               spellCheck="false"
-            ></textarea>
+            />
+          </div>
+
+          <div className="flex gap-3">
             <button
-              onClick={executeQuery}
-              className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 text-sm"
+              onClick={handleRunQuery}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
             >
-              Execute Query
+              Run Query
+            </button>
+            <button
+              onClick={handleResetDatabase}
+              className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            >
+              Reset Database
             </button>
           </div>
 
-          {/* Results Output */}
-          <div className="flex-1 flex flex-col">
-            <label htmlFor="sql-results" className="block text-sm font-medium text-slate-300 mb-2">
+          <div className="flex-1 mt-6">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Results
             </label>
-            <pre
-              id="sql-results"
-              className={`w-full flex-1 bg-slate-800 border ${error ? 'border-red-500' : 'border-slate-700'} rounded-lg p-4 text-sm ${error ? 'text-red-400' : 'text-emerald-400'} overflow-auto font-mono`}
-            >
-              {error ? `Error: ${error}` : results || "Execute a query to see results."}
+            <pre className="w-full h-64 p-4 bg-slate-800 border border-slate-700 rounded-lg text-emerald-300 overflow-auto font-mono text-sm whitespace-pre-wrap">
+              {results}
             </pre>
           </div>
+        </div>
+
+        <div className="lg:w-1/3 flex-shrink-0">
+          {renderSchema}
         </div>
       </div>
     </ToolPageWrapper>
   );
-}
+};
+
+export default SQLPlaygroundPage;
