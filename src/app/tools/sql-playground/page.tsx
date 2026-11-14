@@ -1,233 +1,192 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import ToolPageWrapper from '@/components/ToolPageWrapper';
+import React, { useState, useEffect } from 'react';
+import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
+import { Database, Play, Loader2, ClipboardCopy } from 'lucide-react';
 
-// Mock database schema and data for demonstration
-const mockSchema = {
-  users: [
-    { name: 'id', type: 'INTEGER', primaryKey: true },
-    { name: 'name', type: 'TEXT' },
-    { name: 'email', type: 'TEXT' },
-  ],
-  products: [
-    { name: 'id', type: 'INTEGER', primaryKey: true },
-    { name: 'name', type: 'TEXT' },
-    { name: 'price', type: 'REAL' },
-  ],
-};
+const SQL_PLAYGROUND_SLUG = "sql-playground";
 
-const mockData = {
-  users: [
-    { id: 1, name: 'Alice', email: 'alice@example.com' },
-    { id: 2, name: 'Bob', email: 'bob@example.com' },
-    { id: 3, name: 'Charlie', email: 'charlie@example.com' },
-  ],
-  products: [
-    { id: 101, name: 'Laptop', price: 1200.00 },
-    { id: 102, name: 'Mouse', price: 25.50 },
-    { id: 103, name: 'Keyboard', price: 75.00 },
-  ],
-};
+const exampleSchema = `CREATE TABLE users (
+  id INT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE
+);
+
+CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  product_name VARCHAR(255) NOT NULL,
+  price DECIMAL(10, 2)
+);
+
+INSERT INTO users (id, name, email) VALUES
+(1, 'Alice Smith', 'alice@example.com'),
+(2, 'Bob Johnson', 'bob@example.com'),
+(3, 'Charlie Brown', 'charlie@example.com');
+
+INSERT INTO products (product_id, product_name, price) VALUES
+(101, 'Laptop', 1200.00),
+(102, 'Mouse', 25.50),
+(103, 'Keyboard', 75.00);
+`;
+
+const exampleQuery = `SELECT id, name, email FROM users WHERE id = 1;`;
+const exampleSelectAll = `SELECT * FROM users;`;
 
 export default function SqlPlaygroundPage() {
-  const toolSlug = "sql-playground";
-  const toolName = "SQL Playground";
-  const description = "Execute SQL queries against an in-memory database and view results.";
+  const [sqlQuery, setSqlQuery] = useState<string>(exampleSelectAll);
+  const [queryResult, setQueryResult] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { addToHistory } = useToolStore();
 
-  const [query, setQuery] = useState<string>('');
-  const [results, setResults] = useState<any[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'results' | 'schema'>('results');
+  useEffect(() => {
+    addToHistory(SQL_PLAYGROUND_SLUG);
+  }, [addToHistory]);
 
-  const handleRunQuery = useCallback(() => {
-    addToHistory(toolSlug);
-    setError(null);
-    setResults(null);
+  // Mock SQL execution function
+  const mockExecuteSql = async (query: string): Promise<string> => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network/processing delay
 
-    if (!query.trim()) {
-      setError("Please enter an SQL query.");
-      toast.error("Please enter an SQL query.");
+    const lowerCaseQuery = query.toLowerCase().trim();
+    let result: string;
+
+    try {
+      if (lowerCaseQuery.startsWith("select")) {
+        if (lowerCaseQuery.includes("from users")) {
+          const data = [
+            { id: 1, name: "Alice Smith", email: "alice@example.com" },
+            { id: 2, name: "Bob Johnson", email: "bob@example.com" },
+            { id: 3, name: "Charlie Brown", email: "charlie@example.com" },
+          ];
+          result = JSON.stringify(data, null, 2);
+        } else if (lowerCaseQuery.includes("from products")) {
+          const data = [
+            { product_id: 101, product_name: "Laptop", price: 1200.00 },
+            { product_id: 102, product_name: "Mouse", price: 25.50 },
+            { product_id: 103, product_name: "Keyboard", price: 75.00 },
+          ];
+          result = JSON.stringify(data, null, 2);
+        } else {
+          result = "Mock Result: SELECT query executed. No specific data found for this table.";
+        }
+      } else if (lowerCaseQuery.startsWith("create table")) {
+        result = "Mock Result: Table created successfully.";
+      } else if (lowerCaseQuery.startsWith("insert into")) {
+        result = "Mock Result: Data inserted successfully.";
+      } else if (lowerCaseQuery.startsWith("update")) {
+        result = "Mock Result: Data updated successfully.";
+      } else if (lowerCaseQuery.startsWith("delete")) {
+        result = "Mock Result: Data deleted successfully.";
+      } else if (lowerCaseQuery.startsWith("drop table")) {
+        result = "Mock Result: Table dropped successfully.";
+      } else {
+        throw new Error("Unsupported or invalid SQL query for this playground.");
+      }
+      toast.success("Query executed successfully!");
+    } catch (error: any) {
+      result = `Mock Error: ${error.message || "An unknown error occurred."}`;
+      toast.error("Query execution failed.");
+    } finally {
+      setIsLoading(false);
+    }
+    return result;
+  };
+
+  const handleRunQuery = async () => {
+    if (!sqlQuery.trim()) {
+      setQueryResult("Please enter an SQL query to execute.");
+      toast.error("Query cannot be empty.");
       return;
     }
+    const result = await mockExecuteSql(sqlQuery);
+    setQueryResult(result);
+  };
 
-    // --- Mock SQL Execution Logic ---
-    // In a real scenario, you'd use a library like sql.js-wasm here.
-    // For this implementation, we'll simulate some common queries.
-
-    const lowerCaseQuery = query.trim().toLowerCase();
-
-    if (lowerCaseQuery.startsWith('select * from users')) {
-      setResults(mockData.users);
-      toast.success("Query executed successfully!");
-    } else if (lowerCaseQuery.startsWith('select * from products')) {
-      setResults(mockData.products);
-      toast.success("Query executed successfully!");
-    } else if (lowerCaseQuery.startsWith('select name, email from users')) {
-      setResults(mockData.users.map(({ name, email }) => ({ name, email })));
-      toast.success("Query executed successfully!");
-    } else if (lowerCaseQuery.startsWith('select name, price from products where price > 100')) {
-      setResults(mockData.products.filter(p => p.price > 100).map(({ name, price }) => ({ name, price })));
-      toast.success("Query executed successfully!");
-    } else if (lowerCaseQuery.startsWith('insert') || lowerCaseQuery.startsWith('update') || lowerCaseQuery.startsWith('delete')) {
-      setResults([{ message: "DML operations are simulated. No actual data changes in mock DB." }]);
-      toast.success("DML operation simulated.");
-    } else if (lowerCaseQuery.startsWith('create table') || lowerCaseQuery.startsWith('drop table')) {
-      setResults([{ message: "DDL operations are simulated. No actual schema changes in mock DB." }]);
-      toast.success("DDL operation simulated.");
+  const handleCopyResult = () => {
+    if (queryResult) {
+      navigator.clipboard.writeText(queryResult);
+      toast.success("Result copied to clipboard!");
     } else {
-      setError("Unsupported or invalid mock query. Try 'SELECT * FROM users' or 'SELECT * FROM products'.");
-      toast.error("Query failed: Unsupported or invalid query.");
+      toast.error("No result to copy.");
     }
-    setActiveTab('results');
-  }, [query, addToHistory, toolSlug]);
-
-  const renderTable = (data: any[]) => {
-    if (!data || data.length === 0) {
-      return <p className="text-slate-400">No results to display.</p>;
-    }
-
-    const headers = Object.keys(data[0]);
-
-    return (
-      <div className="overflow-x-auto rounded-lg border border-slate-700">
-        <table className="min-w-full divide-y divide-slate-700">
-          <thead className="bg-slate-800">
-            <tr>
-              {headers.map((header) => (
-                <th
-                  key={header}
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider"
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800 bg-slate-900">
-            {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-slate-800 transition-colors">
-                {headers.map((header) => (
-                  <td key={`${rowIndex}-${header}`} className="px-6 py-4 whitespace-nowrap text-sm text-slate-200">
-                    {String(row[header])}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
   };
-
-  const renderSchema = () => {
-    return (
-      <div className="space-y-6">
-        {Object.entries(mockSchema).map(([tableName, columns]) => (
-          <div key={tableName} className="border border-slate-700 rounded-lg p-4 bg-slate-800">
-            <h3 className="text-lg font-semibold text-indigo-400 mb-3">{tableName}</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-700">
-                <thead className="bg-slate-700">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-300 uppercase">Column</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-300 uppercase">Type</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-300 uppercase">PK</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 bg-slate-800">
-                  {columns.map((col, index) => (
-                    <tr key={index} className="hover:bg-slate-700 transition-colors">
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-200">{col.name}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-300">{col.type}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-300">{col.primaryKey ? '✅' : ''}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
 
   return (
-    <ToolPageWrapper toolSlug={toolSlug} toolName={toolName} description={description}>
+    <ToolPageWrapper
+      toolSlug={SQL_PLAYGROUND_SLUG}
+      toolName="SQL Playground"
+      description="Execute and test SQL queries directly in your browser with a mock database."
+    >
       <div className="flex flex-col lg:flex-row gap-6 h-full">
-        {/* Query Input and Controls */}
-        <div className="flex-1 flex flex-col space-y-4">
-          <div className="flex-1">
-            <label htmlFor="sql-query" className="block text-sm font-medium text-slate-300 mb-2">
-              SQL Query
-            </label>
-            <textarea
-              id="sql-query"
-              className="w-full h-full min-h-[150px] p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 focus:ring-indigo-500 focus:border-indigo-500 resize-y font-mono text-sm"
-              placeholder="Enter your SQL query here, e.g., SELECT * FROM users;"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              spellCheck="false"
-            ></textarea>
+        {/* Query Input Section */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-slate-200">SQL Query</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSqlQuery(exampleSchema)}
+                className="px-3 py-1.5 text-sm font-medium rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors border border-slate-600"
+              >
+                Load Schema
+              </button>
+              <button
+                onClick={() => setSqlQuery(exampleQuery)}
+                className="px-3 py-1.5 text-sm font-medium rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors border border-slate-600"
+              >
+                Load Example Query
+              </button>
+            </div>
           </div>
+          <textarea
+            className="w-full flex-1 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 font-mono text-sm resize-none focus:outline-none focus:border-indigo-500 transition-colors"
+            value={sqlQuery}
+            onChange={(e) => setSqlQuery(e.target.value)}
+            placeholder="Enter your SQL query here..."
+            rows={10}
+          />
           <button
             onClick={handleRunQuery}
-            className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            disabled={isLoading}
+            className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-2.5 text-lg font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Run Query
+            {isLoading ? (
+              <>
+                <Loader2 className="animate-spin h-5 w-5" />
+                Executing...
+              </>
+            ) : (
+              <>
+                <Play className="h-5 w-5" />
+                Run Query
+              </>
+            )}
           </button>
         </div>
 
-        {/* Results and Schema Display */}
-        <div className="flex-1 flex flex-col space-y-4">
-          <div className="flex border-b border-slate-700">
+        {/* Results Output Section */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-slate-200">Results</h2>
             <button
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'results'
-                  ? 'border-b-2 border-indigo-500 text-indigo-400'
-                  : 'text-slate-400 hover:text-slate-300'
-              } transition-colors`}
-              onClick={() => setActiveTab('results')}
+              onClick={handleCopyResult}
+              disabled={!queryResult}
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
-              Results
-            </button>
-            <button
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'schema'
-                  ? 'border-b-2 border-indigo-500 text-indigo-400'
-                  : 'text-slate-400 hover:text-slate-300'
-              } transition-colors`}
-              onClick={() => setActiveTab('schema')}
-            >
-              Schema
+              <ClipboardCopy className="h-4 w-4" /> Copy
             </button>
           </div>
-
-          <div className="flex-1 bg-slate-900 p-4 rounded-lg border border-slate-800 overflow-auto">
-            {activeTab === 'results' && (
-              <>
-                {error && (
-                  <div className="bg-red-900/30 border border-red-700 text-red-300 p-3 rounded-lg text-sm mb-4">
-                    <p className="font-semibold">Error:</p>
-                    <pre className="whitespace-pre-wrap font-mono">{error}</pre>
-                  </div>
-                )}
-                {results && results.length > 0 && renderTable(results)}
-                {results && results.length === 0 && !error && (
-                  <p className="text-slate-400">Query executed, but returned no results.</p>
-                )}
-                {!results && !error && (
-                  <p className="text-slate-400">Run a query to see results here.</p>
-                )}
-              </>
+          <div className="w-full flex-1 p-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-50 font-mono text-sm overflow-auto relative">
+            {queryResult ? (
+              <pre className="whitespace-pre-wrap break-words">{queryResult}</pre>
+            ) : (
+              <div className="text-slate-500 flex items-center justify-center h-full">
+                <Database className="h-8 w-8 mr-2" />
+                <p>Results will appear here after execution.</p>
+              </div>
             )}
-            {activeTab === 'schema' && renderSchema()}
           </div>
         </div>
       </div>
