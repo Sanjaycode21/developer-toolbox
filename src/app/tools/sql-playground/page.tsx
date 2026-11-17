@@ -1,297 +1,253 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
-import { Loader2, Play, RotateCcw, Database } from 'lucide-react';
+import { Code, Table } from 'lucide-react';
 
 interface User {
   id: number;
   name: string;
   email: string;
   age: number;
+  city: string;
 }
 
 interface Product {
   id: number;
   name: string;
   price: number;
+  category: string;
   stock: number;
 }
 
-// Initial mock data for demonstration
-let mockUsers: User[] = [
-  { id: 1, name: 'Alice Smith', email: 'alice@example.com', age: 30 },
-  { id: 2, name: 'Bob Johnson', email: 'bob@example.com', age: 24 },
-  { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', age: 35 },
-];
-
-let mockProducts: Product[] = [
-  { id: 101, name: 'Laptop', price: 1200, stock: 10 },
-  { id: 102, name: 'Mouse', price: 25, stock: 50 },
-  { id: 103, name: 'Keyboard', price: 75, stock: 30 },
-];
-
-// Helper to deep clone data to avoid direct mutation issues
-const cloneData = () => ({
-  users: JSON.parse(JSON.stringify(mockUsers)),
-  products: JSON.parse(JSON.stringify(mockProducts)),
-});
-
-// Simple in-memory SQL executor for demonstration
-const executeSql = (query: string, currentData: { users: User[], products: Product[] }) => {
-  const lowerQuery = query.toLowerCase().trim();
-  let { users, products } = currentData;
-
-  // SELECT statements
-  if (lowerQuery.startsWith('select')) {
-    if (lowerQuery.includes('from users')) {
-      if (lowerQuery.includes('where')) {
-        const match = /where\s+(.+)/.exec(lowerQuery);
-        if (match) {
-          const condition = match[1].trim();
-          // Very basic condition parsing for 'age > X'
-          const ageMatch = /age\s*>\s*(\d+)/.exec(condition);
-          if (ageMatch) {
-            const ageThreshold = parseInt(ageMatch[1]);
-            users = users.filter(u => u.age > ageThreshold);
-          }
-        }
-      }
-      if (lowerQuery.includes('*')) {
-        return { columns: Object.keys(users[0] || {}), rows: users };
-      } else {
-        const columnsMatch = /select\s+([a-z0-9_,\s]+)\s+from/.exec(lowerQuery);
-        if (columnsMatch) {
-          const selectedCols = columnsMatch[1].split(',').map(c => c.trim());
-          const rows = users.map(user => {
-            const newRow: Record<string, any> = {};
-            selectedCols.forEach(col => {
-              if (Object.prototype.hasOwnProperty.call(user, col)) {
-                newRow[col] = (user as any)[col];
-              }
-            });
-            return newRow;
-          });
-          return { columns: selectedCols, rows };
-        }
-      }
-      return { columns: Object.keys(users[0] || {}), rows: users };
-    } else if (lowerQuery.includes('from products')) {
-      if (lowerQuery.includes('*')) {
-        return { columns: Object.keys(products[0] || {}), rows: products };
-      }
-      // Add more complex SELECT logic for products if needed
-      return { columns: Object.keys(products[0] || {}), rows: products };
-    }
-    return { columns: [], rows: [] };
-  }
-
-  // INSERT statements
-  if (lowerQuery.startsWith('insert into users')) {
-    const valuesMatch = /values\s*\((.+?)\)/.exec(lowerQuery);
-    const columnsMatch = /\((.+?)\)\s*values/.exec(lowerQuery);
-    if (valuesMatch && columnsMatch) {
-      const cols = columnsMatch[1].split(',').map(c => c.trim());
-      const vals = valuesMatch[1].split(',').map(v => v.trim().replace(/^'|'$/g, '')); // Remove quotes
-      const newUser: Partial<User> = { id: Math.max(...users.map(u => u.id), 0) + 1 };
-      cols.forEach((col, index) => {
-        if (col === 'age' || col === 'id') {
-          (newUser as any)[col] = parseInt(vals[index]);
-        } else {
-          (newUser as any)[col] = vals[index];
-        }
-      });
-      users.push(newUser as User);
-      mockUsers = users; // Update global mock data
-      return { message: `1 row inserted. New ID: ${newUser.id}`, rowsAffected: 1 };
-    }
-  }
-
-  // UPDATE statements
-  if (lowerQuery.startsWith('update users')) {
-    const setMatch = /set\s+(.+?)\s+where/.exec(lowerQuery);
-    const whereMatch = /where\s+(.+)/.exec(lowerQuery);
-    if (setMatch && whereMatch) {
-      const setClause = setMatch[1].trim();
-      const whereClause = whereMatch[1].trim();
-
-      // Very basic parsing for SET and WHERE
-      const setParts = setClause.split('=').map(p => p.trim());
-      const updateCol = setParts[0];
-      let updateVal: string | number = setParts[1].replace(/^'|'$/g, '');
-      if (updateCol === 'age' || updateCol === 'id') updateVal = parseInt(updateVal as string);
-
-      const whereParts = whereClause.split('=').map(p => p.trim());
-      const filterCol = whereParts[0];
-      let filterVal: string | number = whereParts[1].replace(/^'|'$/g, '');
-      if (filterCol === 'age' || filterCol === 'id') filterVal = parseInt(filterVal as string);
-
-      let rowsAffected = 0;
-      users = users.map(user => {
-        if ((user as any)[filterCol] === filterVal) {
-          (user as any)[updateCol] = updateVal;
-          rowsAffected++;
-        }
-        return user;
-      });
-      mockUsers = users; // Update global mock data
-      return { message: `${rowsAffected} row(s) updated.`, rowsAffected };
-    }
-  }
-
-  // DELETE statements
-  if (lowerQuery.startsWith('delete from users')) {
-    const whereMatch = /where\s+(.+)/.exec(lowerQuery);
-    if (whereMatch) {
-      const whereClause = whereMatch[1].trim();
-      const whereParts = whereClause.split('=').map(p => p.trim());
-      const filterCol = whereParts[0];
-      let filterVal: string | number = whereParts[1].replace(/^'|'$/g, '');
-      if (filterCol === 'age' || filterCol === 'id') filterVal = parseInt(filterVal as string);
-
-      const initialLength = users.length;
-      users = users.filter(user => (user as any)[filterCol] !== filterVal);
-      const rowsAffected = initialLength - users.length;
-      mockUsers = users; // Update global mock data
-      return { message: `${rowsAffected} row(s) deleted.`, rowsAffected };
-    } else {
-      // DELETE ALL
-      const rowsAffected = users.length;
-      users = [];
-      mockUsers = users; // Update global mock data
-      return { message: `${rowsAffected} row(s) deleted.`, rowsAffected };
-    }
-  }
-
-  return { error: 'Unsupported query or syntax error. Try SELECT, INSERT, UPDATE, DELETE on users/products.' };
+const sampleData: { [key: string]: any[] } = {
+  users: [
+    { id: 1, name: 'Alice', email: 'alice@example.com', age: 30, city: 'New York' },
+    { id: 2, name: 'Bob', email: 'bob@example.com', age: 24, city: 'Los Angeles' },
+    { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35, city: 'Chicago' },
+    { id: 4, name: 'David', email: 'david@example.com', age: 29, city: 'New York' },
+    { id: 5, name: 'Eve', email: 'eve@example.com', age: 42, city: 'Houston' },
+    { id: 6, name: 'Frank', email: 'frank@example.com', age: 28, city: 'New York' },
+    { id: 7, name: 'Grace', email: 'grace@example.com', age: 31, city: 'Los Angeles' },
+  ] as User[],
+  products: [
+    { id: 101, name: 'Laptop', price: 1200, category: 'Electronics', stock: 50 },
+    { id: 102, name: 'Mouse', price: 25, category: 'Electronics', stock: 200 },
+    { id: 103, name: 'Keyboard', price: 75, category: 'Electronics', stock: 150 },
+    { id: 104, name: 'Desk Chair', price: 300, category: 'Furniture', stock: 30 },
+    { id: 105, name: 'Monitor', price: 400, category: 'Electronics', stock: 70 },
+    { id: 106, name: 'Webcam', price: 60, category: 'Electronics', stock: 100 },
+    { id: 107, name: 'Headphones', price: 150, category: 'Electronics', stock: 80 },
+  ] as Product[],
 };
 
+type ActiveTab = 'query' | 'schema';
 
 const SQLPlaygroundPage = () => {
-  const [sqlQuery, setSqlQuery] = useState<string>('');
-  const [queryResult, setQueryResult] = useState<{ columns: string[], rows: any[] } | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [query, setQuery] = useState<string>(`SELECT * FROM users WHERE age > 30 ORDER BY name ASC LIMIT 3;`);
+  const [results, setResults] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const addToHistory = useToolStore((state) => state.addToHistory);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('query');
 
-  // Use a ref or state to manage the current "database" state
-  // For simplicity, we'll re-initialize mock data on page load and use global mutable vars for this demo.
-  // In a real app, you'd manage this state more robustly.
-  const [currentDbState, setCurrentDbState] = useState(cloneData());
+  const { addToHistory } = useToolStore();
 
   useEffect(() => {
-    // Re-initialize mock data when component mounts or resets
-    mockUsers = [
-      { id: 1, name: 'Alice Smith', email: 'alice@example.com', age: 30 },
-      { id: 2, name: 'Bob Johnson', email: 'bob@example.com', age: 24 },
-      { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', age: 35 },
-    ];
-    mockProducts = [
-      { id: 101, name: 'Laptop', price: 1200, stock: 10 },
-      { id: 102, name: 'Mouse', price: 25, stock: 50 },
-      { id: 103, name: 'Keyboard', price: 75, stock: 30 },
-    ];
-    setCurrentDbState(cloneData());
-  }, []); // Empty dependency array means this runs once on mount
+    addToHistory('sql-playground');
+  }, [addToHistory]);
 
-  const handleRunQuery = async () => {
-    if (!sqlQuery.trim()) {
-      setError('Please enter an SQL query.');
-      setQueryResult(null);
-      setMessage(null);
-      return;
+  const executeSql = useCallback((sql: string): { data: any[] | null; error: string | null } => {
+    sql = sql.trim().toLowerCase();
+
+    // 1. Basic SELECT FROM parsing
+    const selectFromMatch = sql.match(/select\s+(.+?)\s+from\s+([a-z_]+)/);
+    if (!selectFromMatch) {
+      return { data: null, error: "Invalid SELECT FROM statement. Expected 'SELECT <columns> FROM <table>'." };
     }
 
+    const selectedColumnsStr = selectFromMatch[1].trim();
+    const tableName = selectFromMatch[2].trim();
+
+    if (!sampleData[tableName]) {
+      return { data: null, error: `Table '${tableName}' not found. Available tables: ${Object.keys(sampleData).join(', ')}.` };
+    }
+
+    let currentData = [...sampleData[tableName]]; // Work on a copy
+
+    // 2. WHERE clause
+    const whereRegex = /where\s+(.+?)(?:\s+order by|\s+limit|$)/;
+    const whereMatch = sql.match(whereRegex);
+    if (whereMatch) {
+      const whereClause = whereMatch[1].trim();
+      // Very basic WHERE parsing: column operator value (e.g., age > 30, name = 'Alice')
+      const conditionMatch = whereClause.match(/([a-z_]+)\s*([<>=!]+)\s*(.+)/);
+      if (conditionMatch) {
+        const column = conditionMatch[1];
+        const operator = conditionMatch[2];
+        let value: any = conditionMatch[3].replace(/^'|'$/g, ''); // Remove quotes for strings
+        if (!isNaN(Number(value)) && !isNaN(parseFloat(value))) {
+          value = Number(value); // Convert to number if it's a number
+        }
+
+        currentData = currentData.filter(row => {
+          const rowValue = row[column];
+          if (rowValue === undefined) return false; // Column not found in row
+
+          switch (operator) {
+            case '=': return rowValue == value;
+            case '!=': return rowValue != value;
+            case '>': return rowValue > value;
+            case '<': return rowValue < value;
+            case '>=': return rowValue >= value;
+            case '<=': return rowValue <= value;
+            default: return false; // Unsupported operator
+          }
+        });
+      } else {
+        return { data: null, error: "Unsupported WHERE clause format. Try 'column operator value' (e.g., 'age > 30')." };
+      }
+    }
+
+    // 3. ORDER BY clause
+    const orderByMatch = sql.match(/order by\s+([a-z_]+)(?:\s+(asc|desc))?/);
+    if (orderByMatch) {
+      const orderByColumn = orderByMatch[1];
+      const orderDirection = orderByMatch[2] || 'asc'; // Default to ASC
+
+      if (currentData.length > 0 && !currentData[0].hasOwnProperty(orderByColumn)) {
+        return { data: null, error: `Column '${orderByColumn}' not found for ORDER BY in table '${tableName}'.` };
+      }
+
+      currentData.sort((a, b) => {
+        const valA = a[orderByColumn];
+        const valB = b[orderByColumn];
+
+        if (valA < valB) return orderDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return orderDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // 4. LIMIT clause
+    const limitMatch = sql.match(/limit\s+(\d+)/);
+    if (limitMatch) {
+      const limit = parseInt(limitMatch[1], 10);
+      currentData = currentData.slice(0, limit);
+    }
+
+    // 5. Column selection
+    let finalResults: any[] = [];
+    if (selectedColumnsStr === '*') {
+      finalResults = currentData;
+    } else {
+      const selectedColumns = selectedColumnsStr.split(',').map(col => col.trim());
+      finalResults = currentData.map(row => {
+        const newRow: any = {};
+        let foundAnyColumn = false;
+        for (const col of selectedColumns) {
+          if (row.hasOwnProperty(col)) {
+            newRow[col] = row[col];
+            foundAnyColumn = true;
+          }
+        }
+        if (!foundAnyColumn && selectedColumns.length > 0) {
+          // If no selected column was found in a row, it might indicate an issue
+          // For now, we'll just return an empty object for that row or skip it.
+          // A more robust parser might throw an error here.
+        }
+        return newRow;
+      });
+
+      // Check if all selected columns were actually missing from the data
+      if (selectedColumns.length > 0 && finalResults.every(row => Object.keys(row).length === 0)) {
+        return { data: null, error: `One or more selected columns (${selectedColumns.join(', ')}) not found in table '${tableName}'.` };
+      }
+    }
+
+    return { data: finalResults, error: null };
+  }, []);
+
+  const handleExecute = useCallback(() => {
     setIsLoading(true);
     setError(null);
-    setQueryResult(null);
-    setMessage(null);
-    addToHistory('sql-playground');
-
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    setResults(null);
 
     try {
-      const result = executeSql(sqlQuery, currentDbState); // Pass current state
-      if (result.error) {
-        setError(result.error);
-        toast.error('Query failed!');
-      } else if (result.rows) {
-        setQueryResult(result as { columns: string[], rows: any[] });
-        setMessage(`Query executed successfully. ${result.rows.length} row(s) returned.`);
-        toast.success('Query executed!');
-      } else if (result.message) {
-        setMessage(result.message);
-        toast.success('Query executed!');
+      const { data, error: execError } = executeSql(query);
+      if (execError) {
+        setError(execError);
+        toast.error(execError);
       } else {
-        setMessage('Query executed successfully.');
-        toast.success('Query executed!');
+        setResults(data);
+        toast.success('Query executed successfully!');
       }
-      // Update the currentDbState if DML operations occurred
-      setCurrentDbState(cloneData());
     } catch (e: any) {
-      setError(`An unexpected error occurred: ${e.message}`);
-      toast.error('An unexpected error occurred!');
+      setError(e.message || 'An unexpected error occurred during query execution.');
+      toast.error(e.message || 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);
     }
+  }, [query, executeSql]);
+
+  const getColumnType = (value: any): string => {
+    if (typeof value === 'number') return 'number';
+    if (typeof value === 'string') return 'string';
+    if (typeof value === 'boolean') return 'boolean';
+    if (value === null) return 'null';
+    return 'any';
   };
 
-  const handleReset = () => {
-    setSqlQuery('');
-    setQueryResult(null);
-    setError(null);
-    setMessage(null);
-    setIsLoading(false);
-    // Reset mock data to initial state
-    mockUsers = [
-      { id: 1, name: 'Alice Smith', email: 'alice@example.com', age: 30 },
-      { id: 2, name: 'Bob Johnson', email: 'bob@example.com', age: 24 },
-      { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', age: 35 },
-    ];
-    mockProducts = [
-      { id: 101, name: 'Laptop', price: 1200, stock: 10 },
-      { id: 102, name: 'Mouse', price: 25, stock: 50 },
-      { id: 103, name: 'Keyboard', price: 75, stock: 30 },
-    ];
-    setCurrentDbState(cloneData());
-    toast.success('Playground reset!');
-  };
+  const renderSchema = () => (
+    <div className="space-y-6">
+      {Object.entries(sampleData).map(([tableName, rows]) => (
+        <div key={tableName} className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+          <h3 className="text-lg font-semibold text-indigo-400 mb-3 flex items-center gap-2">
+            <Table className="w-5 h-5" /> Table: <span className="text-slate-100">{tableName}</span>
+          </h3>
+          {rows.length > 0 ? (
+            <ul className="space-y-1 text-sm text-slate-300">
+              {Object.keys(rows[0]).map(columnName => (
+                <li key={`${tableName}-${columnName}`} className="flex items-center gap-2">
+                  <span className="font-mono text-slate-400">{columnName}</span>
+                  <span className="text-slate-500">-</span>
+                  <span className="text-emerald-400">{getColumnType(rows[0][columnName])}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-slate-400 text-sm">No data available for this table to infer schema.</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
-  const handleLoadSampleData = (type: 'select' | 'insert' | 'update' | 'delete') => {
-    let sampleQuery = '';
-    switch (type) {
-      case 'select':
-        sampleQuery = 'SELECT id, name, email FROM users WHERE age > 25;';
-        break;
-      case 'insert':
-        sampleQuery = "INSERT INTO users (name, email, age) VALUES ('Eve Adams', 'eve@example.com', 28);";
-        break;
-      case 'update':
-        sampleQuery = "UPDATE users SET age = 31 WHERE id = 1;";
-        break;
-      case 'delete':
-        sampleQuery = "DELETE FROM users WHERE id = 3;";
-        break;
+  const renderResults = () => {
+    if (isLoading) {
+      return <div className="text-slate-400 text-center py-8">Executing query...</div>;
     }
-    setSqlQuery(sampleQuery);
-    toast.success('Sample query loaded!');
-  };
-
-  const renderTable = useMemo(() => {
-    if (!queryResult || queryResult.rows.length === 0) {
-      return null;
+    if (error) {
+      return (
+        <div className="bg-red-900/30 border border-red-700 text-red-300 p-4 rounded-lg font-mono text-sm">
+          <p className="font-semibold mb-2">Error:</p>
+          <pre className="whitespace-pre-wrap">{error}</pre>
+        </div>
+      );
     }
+    if (!results || results.length === 0) {
+      return <div className="text-slate-400 text-center py-8">No results to display.</div>;
+    }
+
+    const columns = Object.keys(results[0]);
 
     return (
-      <div className="overflow-x-auto rounded-lg border border-slate-700 shadow-lg">
-        <table className="min-w-full divide-y divide-slate-700">
+      <div className="overflow-x-auto rounded-lg border border-slate-700">
+        <table className="min-w-full divide-y divide-slate-700 bg-slate-900">
           <thead className="bg-slate-800">
             <tr>
-              {queryResult.columns.map((col) => (
+              {columns.map((col) => (
                 <th
                   key={col}
                   scope="col"
@@ -302,13 +258,13 @@ const SQLPlaygroundPage = () => {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 bg-slate-900">
-            {queryResult.rows.map((row, rowIndex) => (
+          <tbody className="divide-y divide-slate-800">
+            {results.map((row, rowIndex) => (
               <tr key={rowIndex} className="hover:bg-slate-800 transition-colors">
-                {queryResult.columns.map((col, colIndex) => (
+                {columns.map((col, colIndex) => (
                   <td
                     key={`${rowIndex}-${colIndex}`}
-                    className="px-6 py-4 whitespace-nowrap text-sm text-slate-200"
+                    className="px-6 py-4 whitespace-nowrap text-sm text-slate-400"
                   >
                     {String(row[col])}
                   </td>
@@ -319,138 +275,72 @@ const SQLPlaygroundPage = () => {
         </table>
       </div>
     );
-  }, [queryResult]);
+  };
 
   return (
     <ToolPageWrapper
       toolSlug="sql-playground"
       toolName="SQL Playground"
-      description="Execute SQL queries against an in-memory database for testing and learning."
+      description="Execute and test SQL queries against a sample in-memory database. Supports basic SELECT, WHERE, ORDER BY, and LIMIT clauses."
     >
-      <div className="flex flex-col gap-6">
-        {/* Schema Info */}
-        <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 text-sm text-slate-300">
-          <h3 className="font-semibold text-slate-100 mb-2 flex items-center gap-2">
-            <Database className="w-4 h-4 text-indigo-400" /> Available Tables & Schema
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="font-medium text-slate-200 mb-1">users:</p>
-              <ul className="list-disc list-inside ml-2 text-slate-400">
-                <li>id (INTEGER, PRIMARY KEY)</li>
-                <li>name (TEXT)</li>
-                <li>email (TEXT)</li>
-                <li>age (INTEGER)</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-medium text-slate-200 mb-1">products:</p>
-              <ul className="list-disc list-inside ml-2 text-slate-400">
-                <li>id (INTEGER, PRIMARY KEY)</li>
-                <li>name (TEXT)</li>
-                <li>price (REAL)</li>
-                <li>stock (INTEGER)</li>
-              </ul>
-            </div>
-          </div>
-          <p className="mt-3 text-slate-400">
-            <span className="font-semibold text-slate-300">Note:</span> This is a simplified in-memory database. Only basic SELECT, INSERT, UPDATE, DELETE operations are supported.
-          </p>
-        </div>
-
-        {/* Query Input */}
-        <div className="flex flex-col gap-4">
-          <label htmlFor="sql-query" className="block text-sm font-medium text-slate-300">
-            SQL Query:
-          </label>
-          <textarea
-            id="sql-query"
-            rows={10}
-            className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 focus:outline-none rounded-lg px-4 py-3 text-sm text-slate-100 placeholder-slate-500 transition-colors font-mono resize-y"
-            placeholder="e.g., SELECT * FROM users;"
-            value={sqlQuery}
-            onChange={(e) => setSqlQuery(e.target.value)}
-            spellCheck="false"
-          />
-          <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col lg:flex-row gap-8 h-full">
+        {/* Query Input & Schema */}
+        <div className="flex-1 flex flex-col space-y-6">
+          <div className="flex border-b border-slate-700">
             <button
-              onClick={handleRunQuery}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-4 py-2 text-sm font-medium ${
+                activeTab === 'query'
+                  ? 'text-indigo-400 border-b-2 border-indigo-500'
+                  : 'text-slate-400 hover:text-slate-300'
+              }`}
+              onClick={() => setActiveTab('query')}
             >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="mr-2 h-4 w-4" />
-              )}
-              Run Query
+              <Code className="inline-block w-4 h-4 mr-2" /> Query
             </button>
             <button
-              onClick={handleReset}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center px-5 py-2 border border-slate-700 text-sm font-medium rounded-md shadow-sm text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`px-4 py-2 text-sm font-medium ${
+                activeTab === 'schema'
+                  ? 'text-indigo-400 border-b-2 border-indigo-500'
+                  : 'text-slate-400 hover:text-slate-300'
+              }`}
+              onClick={() => setActiveTab('schema')}
             >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reset
-            </button>
-            <div className="flex-grow" /> {/* Spacer */}
-            <button
-              onClick={() => handleLoadSampleData('select')}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center px-4 py-2 border border-slate-700 text-xs font-medium rounded-md shadow-sm text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Load SELECT Sample
-            </button>
-            <button
-              onClick={() => handleLoadSampleData('insert')}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center px-4 py-2 border border-slate-700 text-xs font-medium rounded-md shadow-sm text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Load INSERT Sample
-            </button>
-            <button
-              onClick={() => handleLoadSampleData('update')}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center px-4 py-2 border border-slate-700 text-xs font-medium rounded-md shadow-sm text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Load UPDATE Sample
-            </button>
-            <button
-              onClick={() => handleLoadSampleData('delete')}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center px-4 py-2 border border-slate-700 text-xs font-medium rounded-md shadow-sm text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Load DELETE Sample
+              <Table className="inline-block w-4 h-4 mr-2" /> Schema
             </button>
           </div>
+
+          {activeTab === 'query' && (
+            <div className="flex-1 flex flex-col space-y-4">
+              <textarea
+                className="w-full flex-1 min-h-[200px] lg:min-h-[300px] bg-slate-800 border border-slate-700 rounded-lg p-4 text-slate-200 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-colors resize-y"
+                placeholder="Enter your SQL query here..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                spellCheck="false"
+              />
+              <button
+                onClick={handleExecute}
+                disabled={isLoading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Executing...' : 'Execute Query'}
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'schema' && (
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {renderSchema()}
+            </div>
+          )}
         </div>
 
-        {/* Output Area */}
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-slate-100">Query Result:</h2>
-          {error && (
-            <div className="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm font-mono">
-              <p className="font-bold">Error:</p>
-              <p>{error}</p>
-            </div>
-          )}
-          {message && !error && (
-            <div className="bg-emerald-900/30 border border-emerald-700 text-emerald-300 px-4 py-3 rounded-lg text-sm font-mono">
-              <p>{message}</p>
-            </div>
-          )}
-          {isLoading && (
-            <div className="flex items-center justify-center p-8 text-slate-400">
-              <Loader2 className="h-8 w-8 animate-spin mr-3" />
-              Executing query...
-            </div>
-          )}
-          {!isLoading && !error && renderTable}
-          {!isLoading && !error && !queryResult && !message && (
-            <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 text-slate-400 text-center">
-              No results to display. Run a query to see output.
-            </div>
-          )}
+        {/* Results Display */}
+        <div className="flex-1 flex flex-col space-y-4">
+          <h2 className="text-xl font-semibold text-slate-100">Results</h2>
+          <div className="flex-1 bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+            {renderResults()}
+          </div>
         </div>
       </div>
     </ToolPageWrapper>
