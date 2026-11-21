@@ -1,200 +1,168 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ToolPageWrapper } from '@/components/ToolPageWrapper';
 import { useToolStore } from '@/store/useToolStore';
 import toast from 'react-hot-toast';
 
-interface TableRow {
-  [key: string]: any;
-}
-
-interface TableResult {
-  columns: string[];
-  rows: TableRow[];
-}
-
-const sampleData: { [key: string]: TableRow[] } = {
+// Mock database data
+const mockData = {
   users: [
-    { id: 1, name: 'Alice', email: 'alice@example.com', age: 30, city: 'New York' },
-    { id: 2, name: 'Bob', email: 'bob@example.com', age: 24, city: 'Los Angeles' },
-    { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35, city: 'Chicago' },
-    { id: 4, name: 'Diana', email: 'diana@example.com', age: 28, city: 'Houston' },
+    { id: 1, name: 'Alice', email: 'alice@example.com', age: 30 },
+    { id: 2, name: 'Bob', email: 'bob@example.com', age: 24 },
+    { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35 },
+    { id: 4, name: 'David', email: 'david@example.com', age: 29 },
+    { id: 5, name: 'Eve', email: 'eve@example.com', age: 42 },
   ],
   products: [
-    { id: 101, name: 'Laptop', price: 1200, category: 'Electronics', stock: 50 },
-    { id: 102, name: 'Mouse', price: 25, category: 'Electronics', stock: 200 },
-    { id: 103, name: 'Keyboard', price: 75, category: 'Electronics', stock: 150 },
-    { id: 104, name: 'Monitor', price: 300, category: 'Electronics', stock: 75 },
-    { id: 105, name: 'Desk Chair', price: 150, category: 'Furniture', stock: 100 },
+    { id: 101, name: 'Laptop', price: 1200.00, category: 'Electronics' },
+    { id: 102, name: 'Mouse', price: 25.50, category: 'Electronics' },
+    { id: 103, name: 'Keyboard', price: 75.00, category: 'Electronics' },
+    { id: 104, name: 'Monitor', price: 300.00, category: 'Electronics' },
+    { id: 105, name: 'Desk Chair', price: 150.00, category: 'Furniture' },
+  ],
+  orders: [
+    { order_id: 1, user_id: 1, product_id: 101, quantity: 1, order_date: '2023-01-15' },
+    { order_id: 2, user_id: 2, product_id: 103, quantity: 2, order_date: '2023-01-16' },
+    { order_id: 3, user_id: 1, product_id: 102, quantity: 1, order_date: '2023-01-17' },
+    { order_id: 4, user_id: 3, product_id: 105, quantity: 1, order_date: '2023-01-18' },
   ],
 };
 
-const SQLPlaygroundPage: React.FC = () => {
+const SQLPlaygroundPage = () => {
   const toolSlug = "sql-playground";
-  const addToHistory = useToolStore((state) => state.addToHistory);
+  const { addToHistory } = useToolStore();
 
-  const [query, setQuery] = useState<string>('SELECT * FROM users;');
-  const [results, setResults] = useState<TableResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [query, setQuery] = useState<string>('');
+  const [results, setResults] = useState<any>(null);
 
-  useEffect(() => {
+  const handleExecute = useCallback(() => {
     addToHistory(toolSlug);
-  }, [addToHistory, toolSlug]);
-
-  const executeQuery = () => {
-    setLoading(true);
-    setResults(null);
-    setError(null);
-
     const lowerCaseQuery = query.toLowerCase().trim();
+    let newResults: any = null;
 
-    // Simulate a delay for query execution
-    setTimeout(() => {
-      try {
-        let data: TableRow[] = [];
-        let columns: string[] = [];
-
-        if (lowerCaseQuery.startsWith('select * from users')) {
-          data = sampleData.users;
-        } else if (lowerCaseQuery.startsWith('select * from products')) {
-          data = sampleData.products;
-        } else if (lowerCaseQuery.startsWith('select name, email from users')) {
-          data = sampleData.users.map(({ name, email }) => ({ name, email }));
-        } else if (lowerCaseQuery.startsWith('select name, price from products')) {
-          data = sampleData.products.map(({ name, price }) => ({ name, price }));
-        } else if (lowerCaseQuery.startsWith('select * from users where age > 30')) {
-          data = sampleData.users.filter(user => user.age > 30);
-        } else if (lowerCaseQuery.startsWith('select * from products where price < 100')) {
-          data = sampleData.products.filter(product => product.price < 100);
-        }
-        else if (lowerCaseQuery.startsWith('insert') || lowerCaseQuery.startsWith('update') || lowerCaseQuery.startsWith('delete')) {
-          setError('DML operations are not supported in this playground.');
-          toast.error('DML operations not supported.');
-          setLoading(false);
-          return;
-        } else if (lowerCaseQuery.startsWith('create') || lowerCaseQuery.startsWith('alter') || lowerCaseQuery.startsWith('drop')) {
-          setError('DDL operations are not supported in this playground.');
-          toast.error('DDL operations not supported.');
-          setLoading(false);
-          return;
-        }
-        else {
-          setError('Unsupported query or table. Try "SELECT * FROM users;", "SELECT name, email FROM users;", "SELECT * FROM users WHERE age > 30;" or similar simple SELECT statements.');
-          toast.error('Unsupported query.');
-          setLoading(false);
-          return;
+    if (lowerCaseQuery.startsWith('select * from')) {
+      const parts = lowerCaseQuery.split(' ');
+      const fromIndex = parts.indexOf('from');
+      if (fromIndex !== -1 && fromIndex + 1 < parts.length) {
+        let tableName = parts[fromIndex + 1];
+        // Remove semicolon if present
+        if (tableName.endsWith(';')) {
+          tableName = tableName.slice(0, -1);
         }
 
-        if (data.length > 0) {
-          columns = Object.keys(data[0]);
-          setResults({ columns, rows: data });
+        if (mockData.hasOwnProperty(tableName)) {
+          newResults = mockData[tableName as keyof typeof mockData];
+          toast.success(`Query executed successfully on table '${tableName}'.`);
         } else {
-          setResults({ columns: [], rows: [] });
+          newResults = { error: `Table '${tableName}' not found in mock database.` };
+          toast.error(`Error: Table '${tableName}' not found.`);
         }
-        toast.success('Query executed successfully!');
-
-      } catch (e: any) {
-        setError(e.message || 'An unknown error occurred during query execution.');
-        toast.error('Error executing query.');
-      } finally {
-        setLoading(false);
+      } else {
+        newResults = { error: 'Invalid SELECT * FROM query format.' };
+        toast.error('Error: Invalid SELECT * FROM query format.');
       }
-    }, 500); // Simulate network/processing delay
-  };
+    } else if (lowerCaseQuery === '') {
+      newResults = { message: 'Please enter a query.' };
+      toast('Please enter a query.', { icon: 'ℹ️' });
+    } else {
+      newResults = { message: 'Only simple "SELECT * FROM <table>" queries are supported for now.' };
+      toast.error('Unsupported query type.');
+    }
+
+    setResults(newResults);
+  }, [query, addToHistory, toolSlug]);
+
+  const handleClear = useCallback(() => {
+    setQuery('');
+    setResults(null);
+    toast('Editor cleared.', { icon: '🧹' });
+  }, []);
+
+  const handleLoadSample = useCallback(() => {
+    setQuery('SELECT * FROM users;');
+    setResults(null);
+    toast('Sample query loaded.', { icon: '📝' });
+  }, []);
 
   return (
     <ToolPageWrapper
       toolSlug={toolSlug}
       toolName="SQL Playground"
-      description="Experiment with SQL queries against a sample in-memory database."
+      description="Execute and test SQL queries against a mock in-memory database."
     >
-      <div className="flex flex-col space-y-6">
-        {/* Query Input */}
-        <div className="flex flex-col space-y-2">
-          <label htmlFor="sql-query" className="text-sm font-medium text-slate-300">
-            SQL Query
-          </label>
-          <textarea
-            id="sql-query"
-            className="w-full min-h-[150px] bg-slate-800 border border-slate-700 rounded-lg p-4 text-slate-50 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-y"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter your SQL query here, e.g., SELECT * FROM users;"
-            spellCheck="false"
-          />
-          <button
-            onClick={executeQuery}
-            disabled={loading}
-            className="mt-4 px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-start"
-          >
-            {loading ? 'Executing...' : 'Run Query'}
-          </button>
+      <div className="flex flex-col lg:flex-row gap-6 h-full">
+        {/* Left Panel: Editor */}
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Query Editor */}
+          <div className="bg-slate-800 p-4 rounded-lg shadow-md flex-1 flex flex-col">
+            <label htmlFor="sql-editor" className="block text-sm font-medium text-slate-300 mb-2">SQL Query Editor</label>
+            <textarea
+              id="sql-editor"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              rows={10}
+              placeholder="Enter your SQL query here, e.g., SELECT * FROM users;"
+              className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-md p-3 text-slate-100 placeholder-slate-500 focus:ring-indigo-500 focus:border-indigo-500 resize-none font-mono text-sm"
+              spellCheck="false"
+            ></textarea>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                onClick={handleExecute}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors text-sm font-medium"
+              >
+                Execute Query
+              </button>
+              <button
+                onClick={handleClear}
+                className="px-4 py-2 bg-slate-700 text-slate-200 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors text-sm font-medium"
+              >
+                Clear Editor
+              </button>
+              <button
+                onClick={handleLoadSample}
+                className="px-4 py-2 bg-slate-700 text-slate-200 rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors text-sm font-medium"
+              >
+                Load Sample Query
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Results Display */}
-        <div className="flex flex-col space-y-2">
-          <h3 className="text-lg font-semibold text-slate-200">Results</h3>
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 min-h-[200px] overflow-auto">
-            {loading && (
-              <div className="flex items-center justify-center h-full text-slate-400">
-                <svg className="animate-spin h-5 w-5 mr-3 text-indigo-400" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Executing query...
-              </div>
-            )}
+        {/* Right Panel: Results & Schema */}
+        <div className="flex-1 flex flex-col gap-6">
+          {/* Results */}
+          <div className="bg-slate-800 p-4 rounded-lg shadow-md flex-1 flex flex-col">
+            <h3 className="text-lg font-semibold text-slate-200 mb-3">Query Results</h3>
+            <div className="bg-slate-900 border border-slate-700 rounded-md p-3 text-slate-100 overflow-auto flex-1 font-mono text-sm">
+              {results ? (
+                <pre className="whitespace-pre-wrap">{JSON.stringify(results, null, 2)}</pre>
+              ) : (
+                <p className="text-slate-500">No results yet. Execute a query to see output.</p>
+              )}
+            </div>
+          </div>
 
-            {!loading && error && (
-              <div className="text-red-400 font-mono text-sm">
-                <pre className="whitespace-pre-wrap">{error}</pre>
-              </div>
-            )}
-
-            {!loading && results && results.rows.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-300">
-                  <thead className="text-xs text-slate-400 uppercase bg-slate-700">
-                    <tr>
-                      {results.columns.map((col) => (
-                        <th key={col} scope="col" className="px-6 py-3">
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.rows.map((row, rowIndex) => (
-                      <tr key={rowIndex} className="bg-slate-800 border-b border-slate-700 hover:bg-slate-700 transition-colors">
-                        {results.columns.map((col) => (
-                          <td key={col} className="px-6 py-4">
-                            {String(row[col])}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {!loading && results && results.rows.length === 0 && !error && (
-              <div className="text-slate-400 text-sm">No results found.</div>
-            )}
-
-            {!loading && !results && !error && (
-              <div className="text-slate-400 text-sm">
-                Enter a SQL query and click "Run Query" to see results.
-                <p className="mt-2">
-                  Try: <code className="bg-slate-700 px-1 py-0.5 rounded">SELECT * FROM users;</code>,{' '}
-                  <code className="bg-slate-700 px-1 py-0.5 rounded">SELECT name, email FROM users;</code>,{' '}
-                  <code className="bg-slate-700 px-1 py-0.5 rounded">SELECT * FROM users WHERE age &gt; 30;</code>, or{' '}
-                  <code className="bg-slate-700 px-1 py-0.5 rounded">SELECT * FROM products;</code>
-                </p>
-              </div>
-            )}
+          {/* Schema Info */}
+          <div className="bg-slate-800 p-4 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-slate-200 mb-3">Mock Database Schema</h3>
+            <div className="bg-slate-900 border border-slate-700 rounded-md p-3 text-slate-100 font-mono text-sm">
+              <p className="text-slate-300 mb-2">Available Tables:</p>
+              <ul className="list-disc list-inside ml-2 text-slate-400">
+                <li>
+                  <span className="font-semibold text-slate-200">users</span>: (id INT, name TEXT, email TEXT, age INT)
+                </li>
+                <li>
+                  <span className="font-semibold text-slate-200">products</span>: (id INT, name TEXT, price REAL, category TEXT)
+                </li>
+                <li>
+                  <span className="font-semibold text-slate-200">orders</span>: (order_id INT, user_id INT, product_id INT, quantity INT, order_date TEXT)
+                </li>
+              </ul>
+              <p className="mt-3 text-slate-500 text-xs">
+                Only simple <code className="bg-slate-700 px-1 py-0.5 rounded">SELECT * FROM &lt;table&gt;</code> queries are supported.
+              </p>
+            </div>
           </div>
         </div>
       </div>
